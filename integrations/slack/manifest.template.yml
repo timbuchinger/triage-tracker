@@ -1,0 +1,35 @@
+display_information:
+  name: "${APP_NAME}"
+  description: "Triage Tracker Slack app (dev)"
+  background_color: "#ffffff"
+
+features:
+  bot_user:
+    display_name: "${APP_NAME} Bot"
+    always_online: false
+
+
+oauth_config:
+  scopes:
+    bot:
+      - channels:read
+      - chat:write
+      - im:history
+      - users:read
+      - groups:read
+      - commands
+      - incoming-webhook
+      - app_mentions:read
+
+settings:
+  event_subscriptions:
+    request_url: "${EVENTS_URL}"
+    bot_events:
+      - app_mention
+      - message.im
+  interactivity:
+    is_enabled: true
+    request_url: "${INTERACTIVITY_URL}"
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false

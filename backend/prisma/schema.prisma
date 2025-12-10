@@ -1,0 +1,251 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Incident {
+  id             String           @id @default(cuid())
+  refId          String           @unique
+  title          String
+  description    String?
+  severity       Severity
+  status         Status           @default(OPEN)
+  reporterId     String?
+  creatorId      String?
+  ownerId        String?
+  teamId         String?
+  serviceId      String?
+  slackChannelId String?          @unique
+  slackChannelName String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  service       Service?         @relation(fields: [serviceId], references: [id])
+  team          Team?            @relation(fields: [teamId], references: [id])
+  timeline      TimelineEvent[]
+  summaries     IncidentSummary[]
+  reporter      User?            @relation("ReportedIncidents", fields: [reporterId], references: [id])
+  creator       User?            @relation("CreatedIncidents", fields: [creatorId], references: [id])
+  owner         User?            @relation("OwnedIncidents", fields: [ownerId], references: [id])
+}
+
+model TimelineEvent {
+  id          String    @id @default(cuid())
+  incidentId  String
+  type        EventType
+  timestamp   DateTime  @default(now())
+  message     String?
+  slackTs     String?
+  slackUser   String?
+  metadata    Json?
+
+  incident    Incident  @relation(fields: [incidentId], references: [id])
+}
+
+model IncidentSummary {
+  id          String   @id @default(cuid())
+  incidentId  String
+  generatedAt DateTime @default(now())
+  content     String
+  metadata    Json?
+
+  incident    Incident @relation(fields: [incidentId], references: [id])
+}
+
+model Service {
+  id             String   @id @default(cuid())
+  name           String
+  organizationId String
+  teamId         String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  team         Team         @relation(fields: [teamId], references: [id])
+  incidents    Incident[]
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  services          Service[]
+  teams             Team[]
+  slackIntegrations SlackIntegration[]
+  users             User[]
+  invites           Invite[]
+}
+
+model User {
+  id             String       @id @default(cuid())
+  email          String       @unique
+  name           String?
+  passwordHash   String?
+  organizationId String
+  role           UserRole     @default(MEMBER)
+  lastLogin      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  installedSlackIntegrations SlackIntegration[] @relation("InstalledBy")
+  slackUserMappings SlackUserMapping[]
+  reportedIncidents Incident[] @relation("ReportedIncidents")
+  createdIncidents  Incident[] @relation("CreatedIncidents")
+  ownedIncidents    Incident[] @relation("OwnedIncidents")
+  refreshTokens     RefreshToken[]
+  teamMemberships   TeamMember[]
+  primaryTeams      Team[] @relation("PrimaryContact")
+  secondaryTeams    Team[] @relation("SecondaryContact")
+}
+
+model SlackIntegration {
+  id                String    @id @default(cuid())
+  organizationId    String
+  teamId            String
+  teamName          String
+  botToken          String
+  userToken         String?
+  scopes            String
+  installedByUserId String
+  installedAt       DateTime  @default(now())
+  active            Boolean   @default(true)
+  metadata          Json?
+  lastEventAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  organization  Organization @relation(fields: [organizationId], references: [id])
+  installedBy   User         @relation("InstalledBy", fields: [installedByUserId], references: [id])
+  slackUserMappings SlackUserMapping[]
+
+  @@unique([organizationId])
+  @@index([teamId])
+}
+
+model SlackUserMapping {
+  id                 String           @id @default(cuid())
+  userId             String
+  slackIntegrationId String
+  slackUserId        String
+  linkedAt           DateTime         @default(now())
+  metadata           Json?
+
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  integration SlackIntegration @relation(fields: [slackIntegrationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, slackIntegrationId])
+  @@index([slackUserId])
+}
+
+model OAuthState {
+  id             String   @id @default(cuid())
+  state          String   @unique
+  organizationId String
+  userId         String
+  flow           String?
+  createdAt      DateTime @default(now())
+  expiresAt      DateTime
+
+  @@index([state])
+  @@index([expiresAt])
+}
+
+model Team {
+  id                 String   @id @default(cuid())
+  name               String
+  organizationId     String
+  isDefault          Boolean  @default(false)
+  primaryContactId   String?
+  secondaryContactId String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  organization     Organization @relation(fields: [organizationId], references: [id])
+  primaryContact   User?        @relation("PrimaryContact", fields: [primaryContactId], references: [id])
+  secondaryContact User?        @relation("SecondaryContact", fields: [secondaryContactId], references: [id])
+  members          TeamMember[]
+  services         Service[]
+  incidents        Incident[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId, isDefault])
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  teamId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([userId])
+}
+
+enum Severity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum Status {
+  OPEN
+  INVESTIGATING
+  MITIGATED
+  RESOLVED
+}
+
+enum EventType {
+  MESSAGE
+  HIGHLIGHTED_MESSAGE
+  STATUS_CHANGE
+  ASSIGNEE_CHANGE
+  NOTE
+  AI_SUMMARY
+  ALERT
+}
+
+model Invite {
+  id             String   @id @default(cuid())
+  email          String
+  token          String   @unique
+  role           UserRole @default(MEMBER)
+  organizationId String
+  expiresAt      DateTime
+  used           Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([token])
+  @@index([expiresAt])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  revoked   Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
+enum UserRole {
+  OWNER
+  MEMBER
+}

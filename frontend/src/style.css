@@ -1,0 +1,48 @@
+@import "tailwindcss";
+@import "daisyui/daisyui.css";
+@import "daisyui/theme/nord.css";
+
+/* App-level adjustments can go here if needed. Keep to a minimum. */
+html, body, #app {
+  height: 100%;
+}
+
+.theme-toggle__button {
+  --btn-border: var(--color-base-300);
+}
+
+.theme-toggle__button--active {
+  --btn-color: var(--color-base-200);
+  --btn-bg: var(--color-base-200);
+  --btn-border: var(--color-base-300);
+  --btn-fg: var(--color-base-content);
+}
+
+[data-theme="nord-dark"],
+:root:has(input.theme-controller[value="nord-dark"]:checked) {
+  color-scheme: dark;
+  --color-primary: #81A1C1;
+  --color-primary-content: #ECEFF4;
+  --color-secondary: #88C0D0;
+  --color-secondary-content: #2E3440;
+  --color-accent: #B48EAD;
+  --color-accent-content: #ECEFF4;
+  --color-neutral: #3B4252;
+  --color-neutral-content: #E5E9F0;
+  --color-base-100: #2E3440;
+  --color-base-200: #3B4252;
+  --color-base-300: #434C5E;
+  --color-base-content: #E5E9F0;
+  --color-info: #88C0D0;
+  --color-success: #A3BE8C;
+  --color-warning: #EBCB8B;
+  --color-error: #BF616A;
+  --radius-selector: 12px;
+  --radius-field: 8px;
+  --radius-box: 12px;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}

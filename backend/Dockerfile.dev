@@ -1,0 +1,23 @@
+FROM node:20
+
+WORKDIR /app
+
+# Install dependencies with schema available for Prisma postinstall
+COPY package*.json ./
+COPY prisma ./prisma
+RUN npm install
+
+COPY . .
+
+# Install entrypoint into a path outside of the bind-mounted app directory
+# so the host's bind mount doesn't hide or change its executable bit.
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+EXPOSE 3000
+# For API:
+# npm run dev
+# For Worker:
+# npm run dev:worker
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+CMD ["npm", "run", "dev"]

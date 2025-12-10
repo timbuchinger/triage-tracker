@@ -1,0 +1,57 @@
+display_information:
+  name: "Triage Tracker"
+  description: "Slack integration for Triage Tracker — incident creation, channel management, and message highlighting."
+  background_color: "#36C5F0"
+
+features:
+  bot_user:
+    display_name: "TriageBot"
+    always_online: false
+
+  slash_commands:
+    - command: "/inc"
+      description: "Open the incident creation modal or create an incident"
+      usage_hint: "[title]"
+      should_escape: false
+
+oauth_config:
+  scopes:
+    bot:
+      - commands
+      - chat:write
+      - chat:write.public
+      - channels:read
+      - channels:history
+      - channels:write
+      - conversations:write
+      - users:read
+      - reactions:read
+  redirect_urls:
+    - "https://caperingly-equiangular-maurine.ngrok-free.dev/api/integrations/slack/callback"
+
+settings:
+  event_subscriptions:
+    request_url: "https://caperingly-equiangular-maurine.ngrok-free.dev/api/integrations/slack/events"
+    bot_events:
+      - reaction_added
+      - app_uninstalled
+      - message.channels
+
+  interactivity:
+    is_enabled: true
+    request_url: "https://caperingly-equiangular-maurine.ngrok-free.dev/api/integrations/slack/interactions"
+
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false
+
+metadata:
+  # Notes for maintainers: Replace {BASE_URL} with your deployment base URL (example: https://triage.example.com)
+  instructions: |
+    - Set the `redirect_urls` value to your app's OAuth callback endpoint: `https://caperingly-equiangular-maurine.ngrok-free.dev/api/integrations/slack/callback`.
+    - Set the `request_url` values to your runtime endpoints that the backend exposes:
+      - Slash command: `https://caperingly-equiangular-maurine.ngrok-free.dev/api/integrations/slack/commands/inc`
+      - Interactivity: `https://caperingly-equiangular-maurine.ngrok-free.dev/api/integrations/slack/interactions`
+      - Events: `https://caperingly-equiangular-maurine.ngrok-free.dev/api/integrations/slack/events`
+    - The manifest above requests the following bot scopes: `commands`, `chat:write`, `channels:read`, `channels:history`, `channels:write` (for creating and updating channels), `conversations:write`, `users:read`, and `reactions:read`.
+    - After importing this manifest into Slack, confirm the following event subscriptions are enabled: `reaction_added`, `app_uninstalled`, and (optionally) `message.channels` if you want message events.
