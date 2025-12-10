@@ -20,7 +20,8 @@ describe("SlackIncService", () => {
   const incidentsService = {
     create: jest.fn(),
     addTimelineEvent: jest.fn(),
-    updateStatusAndLog: jest.fn()
+    updateStatusAndLog: jest.fn(),
+    findOne: jest.fn()
   };
 
   const slackClient = {
@@ -43,6 +44,9 @@ describe("SlackIncService", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+  beforeEach(() => {
+    incidentsService.findOne.mockResolvedValue(createMockIncident());
   });
 
   it("routes /inc with no text to the create modal", async () => {
@@ -316,7 +320,7 @@ describe("SlackIncService", () => {
     const result = await service.handleInteraction(JSON.stringify(payload));
 
     expect(result).toEqual({
-      response_action: "push",
+      response_action: "update",
       view: expect.objectContaining({ callback_id: "inc_create" })
     });
   });
@@ -339,7 +343,7 @@ describe("SlackIncService", () => {
     const result = await service.handleInteraction(JSON.stringify(payload));
 
     expect(result).toEqual({
-      response_action: "push",
+      response_action: "update",
       view: expect.objectContaining({
         callback_id: "inc_status",
         blocks: expect.arrayContaining([
@@ -380,7 +384,7 @@ describe("SlackIncService", () => {
     const result = await service.handleInteraction(JSON.stringify(payload));
 
     expect(result).toEqual({
-      response_action: "push",
+      response_action: "update",
       view: expect.objectContaining({
         callback_id: "inc_update",
         blocks: expect.arrayContaining([
@@ -401,5 +405,43 @@ describe("SlackIncService", () => {
       (block: any) => block.block_id === "incident_ref" && block.type === "input"
     );
     expect(hasIncidentRefInput).toBe(false);
+  });
+
+  it("excludes the incident's current status from the status modal options", async () => {
+    // Ensure the mocked incident has status OPEN
+    incidentsService.findOne.mockResolvedValue(createMockIncident({ status: "OPEN" }));
+
+    const payload = {
+      type: "view_submission",
+      user: { id: "U999" },
+      view: {
+        callback_id: "inc_action",
+        private_metadata: JSON.stringify({ channel_id: "C1", channel_name: "inc-1234-2025-12-01" }),
+        state: {
+          values: {
+            action_block: { action_select: { selected_option: { value: "change_status" } } }
+          }
+        }
+      }
+    };
+
+    const result = await service.handleInteraction(JSON.stringify(payload));
+
+    expect(result).toEqual({ response_action: "push", view: expect.any(Object) });
+
+    const statusModal = (result as any).view;
+    const statusBlock = statusModal.blocks.find((b: any) => b.block_id === "status");
+    expect(statusBlock).toBeDefined();
+    const options = statusBlock.element.options as Array<{ value: string }>;
+
+    // The current status (OPEN) should NOT be present
+    const hasCurrent = options.some((o) => o.value === "OPEN");
+    expect(hasCurrent).toBe(false);
+
+    // Other statuses should still be available
+    const expected = ["INVESTIGATING", "MITIGATED", "RESOLVED"];
+    for (const v of expected) {
+      expect(options.some((o) => o.value === v)).toBe(true);
+    }
   });
 });

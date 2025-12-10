@@ -8,6 +8,7 @@ export interface Incident {
   refId: string;
   title: string;
   description?: string | null;
+  internalNotes?: string | null;
   severity: IncidentSeverity;
   status: IncidentStatus;
   serviceId?: string | null;
@@ -21,6 +22,7 @@ export interface Incident {
     email: string;
   } | null;
   slackChannelId?: string | null;
+  slackChannelName?: string | null;
   createdAt: string;
 }
 
@@ -92,6 +94,7 @@ export async function updateIncident(refId: string, input: {
   description?: string;
   severity?: IncidentSeverity;
   serviceId?: string;
+  internalNotes?: string;
 }) {
   return request<Incident>(`/incidents/${encodeURIComponent(refId)}`, {
     method: "PATCH",
@@ -109,5 +112,12 @@ export async function updateSummary(refId: string, summaryId: string, content: s
   return request<IncidentSummary>(`/incidents/${encodeURIComponent(refId)}/summaries/${summaryId}`, {
     method: "PATCH",
     body: { content }
+  });
+}
+
+export async function updateIncidentStatus(refId: string, status: IncidentStatus, message?: string) {
+  return request(`/incidents/${encodeURIComponent(refId)}/status`, {
+    method: "PATCH",
+    body: { status, message }
   });
 }

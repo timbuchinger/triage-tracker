@@ -7,7 +7,7 @@ import UiTextarea from "@/components/ui/UiTextarea.vue";
 import UiFormField from "@/components/ui/UiFormField.vue";
 import UiSelect from "@/components/ui/UiSelect.vue";
 import UiSkeleton from "@/components/ui/UiSkeleton.vue";
-import { getIncident, IncidentWithRelations, generateSummary, updateSummary, updateIncident } from "@/api/incidents";
+import { getIncident, IncidentWithRelations, generateSummary, updateSummary, updateIncident, updateIncidentStatus } from "@/api/incidents";
 import { type Service } from "@/api/teams";
 import { useNotifications } from "@/composables/useNotifications";
 
@@ -149,6 +149,34 @@ const handleCancelServiceEdit = () => {
   editingService.value = false;
   selectedServiceId.value = incident.value?.serviceId || "";
 };
+
+const saveNotes = async () => {
+  if (!incident.value) return;
+
+  try {
+    await updateIncident(incident.value.refId, {
+      internalNotes: incident.value.internalNotes ?? undefined
+    });
+    await loadIncident();
+    info("Notes saved");
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : "Failed to save notes";
+    error("Failed to save notes", { details: errorMsg });
+  }
+};
+
+const handleResolve = async () => {
+  if (!incident.value) return;
+
+  try {
+    await updateIncidentStatus(incident.value.refId, "RESOLVED");
+    await loadIncident();
+    info("Incident resolved");
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : "Failed to resolve incident";
+    error("Failed to resolve incident", { details: errorMsg });
+  }
+};
 </script>
 
 <template>
@@ -169,8 +197,15 @@ const handleCancelServiceEdit = () => {
         </p>
       </div>
       <div class="flex gap-2">
-        <UiButton variant="secondary" size="sm" disabled> Resolve </UiButton>
-        <UiButton variant="danger" size="sm" disabled> Escalate </UiButton>
+          <UiButton
+            variant="secondary"
+            size="sm"
+            :disabled="incident?.status === 'RESOLVED'"
+            @click="handleResolve"
+          >
+            {{ incident?.status === 'RESOLVED' ? 'Resolved' : 'Resolve' }}
+          </UiButton>
+          <UiButton variant="danger" size="sm" disabled> Escalate </UiButton>
       </div>
     </div>
 
@@ -204,36 +239,41 @@ const handleCancelServiceEdit = () => {
         </UiCard>
 
         <UiCard>
-          <div class="flex items-center justify-between mb-2">
-            <h2 class="text-sm font-semibold">AI Summary</h2>
-            <div class="flex gap-2">
-              <UiButton
-                v-if="!latestSummary && canGenerateSummary"
-                variant="primary"
-                size="sm"
-                :loading="generating"
-                @click="handleGenerateSummary"
-              >
-                {{ generating ? 'Generating...' : 'Generate Summary' }}
-              </UiButton>
-              <template v-else-if="latestSummary && !editMode">
-                <UiButton variant="ghost" size="sm" @click="handleEditSummary">Edit</UiButton>
+            <div class="flex items-center justify-between mb-2">
+              <h2 class="text-sm font-semibold">AI Summary</h2>
+              <div class="flex items-center gap-2">
+                <!-- Top-right generate button always available when allowed -->
                 <UiButton
                   v-if="canGenerateSummary"
                   variant="secondary"
+                  size="xs"
+                  :loading="generating"
+                  @click="handleGenerateSummary"
+                  aria-label="Generate summary"
+                >
+                  {{ generating ? 'Generating...' : 'Generate' }}
+                </UiButton>
+
+                <UiButton
+                  v-if="!latestSummary && canGenerateSummary"
+                  variant="primary"
                   size="sm"
                   :loading="generating"
                   @click="handleGenerateSummary"
                 >
-                  Generate New
+                  {{ generating ? 'Generating...' : 'Generate Summary' }}
                 </UiButton>
-              </template>
-              <template v-else-if="editMode">
-                <UiButton variant="ghost" size="sm" @click="handleCancelEdit">Cancel</UiButton>
-                <UiButton variant="primary" size="sm" @click="handleSaveSummary">Save</UiButton>
-              </template>
+
+                <template v-else-if="latestSummary && !editMode">
+                  <UiButton variant="ghost" size="sm" @click="handleEditSummary">Edit</UiButton>
+                </template>
+
+                <template v-else-if="editMode">
+                  <UiButton variant="ghost" size="sm" @click="handleCancelEdit">Cancel</UiButton>
+                  <UiButton variant="primary" size="sm" @click="handleSaveSummary">Save</UiButton>
+                </template>
+              </div>
             </div>
-          </div>
 
           <div v-if="!latestSummary && !canGenerateSummary" class="text-sm text-base-content/70">
             Summaries can be generated once the incident is resolved.
@@ -303,7 +343,7 @@ const handleCancelServiceEdit = () => {
                   rel="noopener noreferrer"
                   class="link link-primary"
                 >
-                  {{ incident.slackChannelId }}
+                  {{ incident.slackChannelName || incident.slackChannelId }}
                 </a>
                 <span v-else class="text-base-content/70">None</span>
               </dd>
@@ -321,10 +361,18 @@ const handleCancelServiceEdit = () => {
 
         <UiCard>
           <h2 class="text-sm font-semibold mb-2">Notes</h2>
-          <UiFormField label="Internal notes" id="notes" hint="Notes are read-only for now.">
-            <UiTextarea id="notes" rows="3" placeholder="Notes functionality not yet implemented." disabled />
+          <UiFormField label="Notes" id="notes">
+            <UiTextarea
+              id="notes"
+              rows="4"
+              v-model="incident.internalNotes"
+              placeholder="Add notes about this incident (visible to your team)."
+            />
           </UiFormField>
-          <UiButton variant="primary" size="sm" disabled> Save note </UiButton>
+          <div class="flex gap-2">
+            <UiButton variant="ghost" size="sm" @click="loadIncident">Cancel</UiButton>
+            <UiButton variant="primary" size="sm" @click="saveNotes">Save note</UiButton>
+          </div>
         </UiCard>
       </div>
     </div>

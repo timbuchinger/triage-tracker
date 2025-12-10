@@ -83,11 +83,10 @@ Required and recommended bot scopes for full functionality (add these in the Sla
 - `chat:write.public` — post to public channels the bot hasn't joined
 - `conversations.history` / `channels:history` & `groups:history` — read messages (used to fetch message content after reactions)
 - `reactions:read` — read reactions (useful for verifying reaction events)
-- `conversations:write` (or `channels:manage`) — create channels
-- `conversations.invite` — invite users to channels
-- `conversations.setTopic` — set channel topic
-- `conversations.join` / `channels:join` — join channels when needed
+- `conversations:write` (or `channels:manage`) — create and manage channels (covers create, invite, set topic, and join)
 - `users:read` — read user info for mentions and display
+
+Note: individual method names like `conversations.invite` or `conversations.setTopic` are API methods, not OAuth scopes. Use `conversations:write` to grant the bot channel management capabilities.
 
 Note: pick the history/read scopes (`conversations.history` vs `channels:history`/`groups:history`) that match your workspace needs. For private channels ensure the bot is invited or has the right scopes.
 

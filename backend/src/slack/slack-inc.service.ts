@@ -119,19 +119,19 @@ export class SlackIncService {
     const metadata = this.parseMetadata(payload.view.private_metadata);
     const incidentRef = this.deriveIncidentRefFromChannel(metadata.channel_name);
 
-    if (selected === "create_incident") {
-      const next = this.buildCreateIncidentModal(payload.view.private_metadata ?? JSON.stringify(metadata));
-      return { response_action: "push", view: next };
+      if (selected === "create_incident") {
+        const next = this.buildCreateIncidentModal(payload.view.private_metadata ?? JSON.stringify(metadata));
+        return { response_action: "update", view: next };
     }
 
-    if (selected === "change_status") {
-      const next = this.buildStatusUpdateModal(payload.view.private_metadata ?? JSON.stringify(metadata), incidentRef ?? "");
-      return { response_action: "push", view: next };
+      if (selected === "change_status") {
+        const next = await this.buildStatusUpdateModal(payload.view.private_metadata ?? JSON.stringify(metadata), incidentRef ?? "");
+        return { response_action: "update", view: next };
     }
 
-    if (selected === "provide_update") {
-      const next = this.buildProvideUpdateModal(payload.view.private_metadata ?? JSON.stringify(metadata), incidentRef ?? "");
-      return { response_action: "push", view: next };
+      if (selected === "provide_update") {
+        const next = this.buildProvideUpdateModal(payload.view.private_metadata ?? JSON.stringify(metadata), incidentRef ?? "");
+        return { response_action: "update", view: next };
     }
 
     // Default: no-op
@@ -421,7 +421,7 @@ export class SlackIncService {
     };
   }
 
-  private buildStatusUpdateModal(privateMetadata: string, refId: string) {
+  private async buildStatusUpdateModal(privateMetadata: string, refId: string) {
     // When in an incident channel (refId is set), hide the incident ID field
     const blocks: any[] = [];
 
@@ -446,6 +446,28 @@ export class SlackIncService {
       });
     }
 
+    // Determine available status options. If we have a refId, exclude the current
+    // status so users can't choose the status that is already set.
+    const allOptions = [
+      { text: { type: "plain_text", text: "Open" }, value: "OPEN" },
+      { text: { type: "plain_text", text: "Investigating" }, value: "INVESTIGATING" },
+      { text: { type: "plain_text", text: "Mitigated" }, value: "MITIGATED" },
+      { text: { type: "plain_text", text: "Resolved" }, value: "RESOLVED" }
+    ];
+
+    let options = allOptions;
+    if (refId) {
+      try {
+        const incident = await this.incidentsService.findOne(refId);
+        const current = incident?.status;
+        if (current) {
+          options = allOptions.filter((opt) => opt.value !== current);
+        }
+      } catch (err) {
+        this.logger.warn(`Failed to load incident ${refId} for status modal: ${err}`);
+      }
+    }
+
     blocks.push(
       {
         type: "input",
@@ -454,12 +476,7 @@ export class SlackIncService {
         element: {
           type: "static_select",
           action_id: "value",
-          options: [
-            { text: { type: "plain_text", text: "Open" }, value: "OPEN" },
-            { text: { type: "plain_text", text: "Investigating" }, value: "INVESTIGATING" },
-            { text: { type: "plain_text", text: "Mitigated" }, value: "MITIGATED" },
-            { text: { type: "plain_text", text: "Resolved" }, value: "RESOLVED" }
-          ]
+          options
         }
       },
       {

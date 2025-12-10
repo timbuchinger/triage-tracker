@@ -26,11 +26,11 @@ export class AiService {
     }
 
     const prompt = this.buildSummaryPrompt(incident);
-    
+
     this.logger.log(`Generating summary for incident ${incident.refId}`);
-    
+
     const summary = await this.geminiClient.generateText(prompt);
-    
+
     return this.parseSummary(summary);
   }
 
@@ -46,22 +46,24 @@ export class AiService {
 
     return `You are an incident management assistant. Analyze the following incident and create a concise summary.
 
-Incident: ${incident.title}
-Severity: ${incident.severity}
-Status: ${incident.status}
-Description: ${incident.description || 'N/A'}
+  Incident: ${incident.title}
+  Severity: ${incident.severity}
+  Status: ${incident.status}
+  Description: ${incident.description || 'N/A'}
 
-Timeline Events:
-${timelineText || 'No timeline events recorded.'}
+  Internal Notes: ${incident.internalNotes || 'None'}
 
-Produce a summary highlighting the most important events and identifying the root cause.
+  Timeline Events:
+  ${timelineText || 'No timeline events recorded.'}
 
-Format your response exactly as follows:
-----
-[Summary text here - be concise and focus on key events]
+  Produce a summary highlighting the most important events and identifying the root cause.
 
-Root cause: [root cause description or "unknown" if not identifiable]
-----`;
+  Format your response exactly as follows:
+  ----
+  [Summary text here - be concise and focus on key events]
+
+  Root cause: [root cause description or "unknown" if not identifiable]
+  ----`;
   }
 
   private parseSummary(rawSummary: string): string {

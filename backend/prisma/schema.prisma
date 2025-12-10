@@ -12,6 +12,7 @@ model Incident {
   refId          String           @unique
   title          String
   description    String?
+  internalNotes  String?
   severity       Severity
   status         Status           @default(OPEN)
   reporterId     String?

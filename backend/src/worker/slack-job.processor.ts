@@ -18,17 +18,22 @@ export class SlackJobProcessor implements OnModuleInit, OnModuleDestroy {
     this.worker = new Worker<JobData>(
       SLACK_QUEUE_NAME,
       async (job) => {
+        this.logger.log(`Picked up job ${job.name}`);
         if (job.name === "create-incident-channel") {
-              const data = job.data as CreateIncidentJob;
-              await this.handleCreateIncidentJob(data);
+          const data = job.data as CreateIncidentJob;
+          this.logger.log(`Processing create-incident-channel for ${data.refId}`);
+          await this.handleCreateIncidentJob(data);
+          this.logger.log(`Completed create-incident-channel for ${data.refId}`);
         } else if (job.name === "post-status-update") {
           const data = job.data as StatusUpdateJob;
+          this.logger.log(`Processing post-status-update for ${data.refId} (channel ${data.channelId})`);
           await this.slackJobs.postStatusUpdateMessage({
             channelId: data.channelId,
             refId: data.refId,
             status: data.status,
             statusText: data.statusText
           });
+          this.logger.log(`Completed post-status-update for ${data.refId}`);
         }
       },
       {

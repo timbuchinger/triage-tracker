@@ -5,6 +5,7 @@ import { CreateIncidentDto } from "./dto/create-incident.dto";
 import { UpdateIncidentDto } from "./dto/update-incident.dto";
 import { AddEventDto } from "./dto/add-event.dto";
 import { AddSummaryDto } from "./dto/add-summary.dto";
+import { UpdateStatusDto } from "./dto/update-status.dto";
 import { UpdateSummaryDto } from "./dto/update-summary.dto";
 import { CurrentUser, CurrentUserData } from "../auth/decorators/current-user.decorator";
 
@@ -52,6 +53,17 @@ export class IncidentsController {
   @Post(":refId/summaries/generate")
   generateSummary(@Param("refId") refId: string) {
     return this.incidentsService.generateSummary(refId);
+  }
+
+  @Patch(":refId/status")
+  updateStatus(@Param("refId") refId: string, @Body() dto: UpdateStatusDto) {
+    // Delegate to service which updates status and writes a timeline event
+    return this.incidentsService.updateStatusAndLog(refId, dto.status as any, {
+      type: "STATUS_CHANGE" as any,
+      message: dto.message,
+      timestamp: dto.timestamp,
+      metadata: dto.metadata,
+    });
   }
 
   @Patch(":refId/summaries/:summaryId")

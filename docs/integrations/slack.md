@@ -29,10 +29,7 @@ The Triage Tracker Slack integration allows organizations to connect their Slack
    - `chat:write.public` — post to public channels the bot hasn't joined
    - `conversations.history` / `channels:history` & `groups:history` — read messages (used to fetch message content after reactions)
    - `reactions:read` — read reactions
-   - `conversations:write` (or `channels:manage`) — create channels
-   - `conversations.invite` — invite users to channels
-   - `conversations.setTopic` — set channel topic
-   - `conversations.join` / `channels:join` — join channels when needed
+   - `conversations:write` (or `channels:manage`) — create and manage channels (covers create, invite, set topic, and join)
    - `users:read` — read user info
 
 3. Add **Redirect URLs**:

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, Optional } from "@nestjs/common";
 import { SlackClient } from "./slack.client";
 import { PrismaService } from "../database/prisma.service";
 import { SlackIntegrationService } from "../integrations/slack/slack-integration.service";
@@ -11,6 +11,7 @@ export class SlackJobsService {
     private readonly prisma: PrismaService,
     private readonly slackIntegrationService: SlackIntegrationService,
     // Optional factory to create SlackClient instances (used in tests)
+    @Optional()
     private readonly clientFactory?: (config: { signingSecret: string; botToken: string }) => SlackClient,
   ) {}
 

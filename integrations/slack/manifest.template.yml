@@ -8,6 +8,12 @@ features:
     display_name: "${APP_NAME} Bot"
     always_online: false
 
+  slash_commands:
+    - command: /inc
+      url: https://caperingly-equiangular-maurine.ngrok-free.dev/api/integrations/slack/commands/inc
+      description: Manage incidents
+      should_escape: false
+
 
 oauth_config:
   scopes:
@@ -16,10 +22,12 @@ oauth_config:
       - chat:write
       - im:history
       - users:read
+      - channels:manage
       - groups:read
       - commands
       - incoming-webhook
       - app_mentions:read
+      - reactions:read
 
 settings:
   event_subscriptions:
@@ -27,6 +35,8 @@ settings:
     bot_events:
       - app_mention
       - message.im
+      - reaction_added
+      - reaction_removed
   interactivity:
     is_enabled: true
     request_url: "${INTERACTIVITY_URL}"

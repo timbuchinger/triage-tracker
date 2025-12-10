@@ -1,6 +1,7 @@
-import { Controller, Get, Delete, Query, Param, Post, Body, Headers, RawBodyRequest, Req, Res, UseGuards, Logger } from '@nestjs/common';
+import { Controller, Get, Delete, Query, Param, Post, Body, Headers, RawBodyRequest, Req, Res, UseGuards, Logger, Inject, forwardRef } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { SlackIntegrationService } from './slack-integration.service';
+import { SlackIncService } from '../../slack/slack-inc.service';
 import { Public } from '../../auth/decorators/public.decorator';
 
 @Controller('integrations/slack')
@@ -10,6 +11,8 @@ export class SlackIntegrationController {
 
   constructor(
     private readonly slackIntegrationService: SlackIntegrationService,
+    @Inject(forwardRef(() => SlackIncService))
+    private readonly slackIncService: SlackIncService,
   ) {}
 
   @Get('start')
@@ -122,7 +125,15 @@ export class SlackIntegrationController {
         await this.slackIntegrationService.handleAppUninstalled(body.team_id);
       }
 
-      this.logger.log(`Received Slack event: ${event.type}`);
+      // Log the raw event for better traceability
+      this.logger.debug(`Received Slack event callback: ${JSON.stringify(event)}`);
+
+      // Forward event payloads to the Slack incidents service for processing
+      try {
+        await this.slackIncService.handleEvent(body);
+      } catch (err) {
+        this.logger.error(`Error processing Slack event in SlackIncService: ${err}`);
+      }
     }
 
     return { ok: true };

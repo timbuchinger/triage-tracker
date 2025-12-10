@@ -87,7 +87,8 @@ export class IncidentsService {
         title: dto.title,
         description: dto.description,
         severity: dto.severity,
-        serviceId: dto.serviceId
+        serviceId: dto.serviceId,
+        internalNotes: dto.internalNotes
       }
     });
   }

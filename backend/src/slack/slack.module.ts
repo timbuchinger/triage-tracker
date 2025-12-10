@@ -13,7 +13,7 @@ import { SlackOAuthController } from "./slack-oauth.controller";
 import { SlackOAuthService } from "./slack-oauth.service";
 
 @Module({
-  imports: [forwardRef(() => IncidentsModule), PrismaModule, SlackIntegrationModule],
+  imports: [forwardRef(() => IncidentsModule), PrismaModule, forwardRef(() => SlackIntegrationModule)],
   controllers: [SlackController, SlackOAuthController],
   providers: [
     {
@@ -38,6 +38,6 @@ import { SlackOAuthService } from "./slack-oauth.service";
     SlackJobsService,
     SlackOAuthService
   ],
-  exports: [SlackClient, SlackQueueService, SlackJobsService, SlackOAuthService, SLACK_CONFIG]
+  exports: [SlackClient, SlackQueueService, SlackJobsService, SlackOAuthService, SLACK_CONFIG, SlackIncService]
 })
 export class SlackModule {}
