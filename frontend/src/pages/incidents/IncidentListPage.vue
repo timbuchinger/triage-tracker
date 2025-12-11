@@ -3,18 +3,17 @@ import { onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import UiCard from "@/components/ui/UiCard.vue";
 import UiButton from "@/components/ui/UiButton.vue";
-import UiSelect from "@/components/ui/UiSelect.vue";
 import IncidentsFilterBar from "@/components/IncidentsFilterBar.vue";
 import { Incident, listIncidents } from "@/api/incidents";
 import { useNotifications } from "@/composables/useNotifications";
-import { updateIncident } from "@/api/incidents";
+import { badges } from "@/design/tokens";
 
 const router = useRouter();
 const { error, info } = useNotifications();
 
 const incidents = ref<Incident[]>([]);
 const loading = ref(false);
-const filters = ref<{ statuses?: string[]; dateRange?: string; owner?: string }>({ statuses: ["OPEN"], dateRange: "30", owner: "everyone" });
+const filters = ref<{ statuses?: string[]; dateRange?: string; owner?: string }>({ statuses: ["OPEN", "INVESTIGATING", "MITIGATED", "RESOLVED"], dateRange: "30", owner: "everyone" });
 
 const goToNew = () => router.push({ name: "incident-create" });
 const goToDetail = (refId: string) =>
@@ -104,29 +103,23 @@ const severityBadgeClass = (severity: Incident["severity"]) => {
   }
 };
 
-const severityOptions: { label: string; value: Incident["severity"] }[] = [
-  { label: "Critical", value: "CRITICAL" },
-  { label: "High", value: "HIGH" },
-  { label: "Medium", value: "MEDIUM" },
-  { label: "Low", value: "LOW" }
-];
-
-const onChangeSeverity = async (incident: Incident, newSeverity: Incident["severity"]) => {
-  const old = incident.severity;
-  // optimistic update
-  incident.severity = newSeverity;
-  try {
-    await updateIncident(incident.refId, { severity: newSeverity });
-    info("Severity updated");
-  } catch (err) {
-    incident.severity = old;
-    const errorMessage = err instanceof Error ? err.message : "Failed to update severity";
-    error("Failed to update severity", { details: errorMessage });
-  }
-};
-
 const formatSeverity = (severity: Incident["severity"]) => severity.toLowerCase();
 const formatStatus = (status: Incident["status"]) => status.toLowerCase();
+
+const statusBadgeClass = (status: Incident["status"]) => {
+  switch (status) {
+    case "OPEN":
+      return badges.statusOpen;
+    case "INVESTIGATING":
+      return badges.statusInvestigating;
+    case "MITIGATED":
+      return badges.statusMitigated;
+    case "RESOLVED":
+      return badges.statusResolved;
+    default:
+      return "badge badge-ghost";
+  }
+};
 
 const formatDate = (isoString: string) =>
   new Date(isoString).toLocaleString(undefined, {
@@ -190,21 +183,14 @@ const formatDate = (isoString: string) =>
                 {{ incident.title }}
               </td>
               <td class="py-3 pr-4 text-left">
-                <div class="w-36">
-                  <UiSelect
-                    :modelValue="incident.severity"
-                    @update:modelValue="(v) => onChangeSeverity(incident, v)"
-                    @click.stop
-                  >
-                    <option disabled value="">Select severity</option>
-                    <option v-for="opt in severityOptions" :key="opt.value" :value="opt.value">
-                      {{ opt.label }}
-                    </option>
-                  </UiSelect>
-                </div>
+                <span class="badge badge-sm capitalize" :class="severityBadgeClass(incident.severity)">
+                  {{ formatSeverity(incident.severity) }}
+                </span>
               </td>
-              <td class="py-3 pr-4 text-left text-sm capitalize text-base-content/80">
-                {{ formatStatus(incident.status) }}
+              <td class="py-3 pr-4 text-left">
+                <span class="badge badge-sm capitalize" :class="statusBadgeClass(incident.status)">
+                  {{ formatStatus(incident.status) }}
+                </span>
               </td>
               <td class="py-3 text-left text-sm text-base-content/70 whitespace-nowrap">
                 {{ incident.owner?.name ?? incident.owner?.email ?? '—' }}

@@ -34,6 +34,14 @@ export const typography = {
 export const badges = {
   roleOwner: "badge badge-accent",
   roleMember: "badge badge-secondary",
+  severityCritical: "badge badge-error",
+  severityHigh: "badge badge-warning",
+  severityMedium: "badge badge-info",
+  severityLow: "badge badge-neutral",
+  statusOpen: "badge badge-secondary",
+  statusInvestigating: "badge badge-primary",
+  statusMitigated: "badge badge-warning",
+  statusResolved: "badge badge-success",
   statusActive: "badge badge-success",
   statusInactive: "badge badge-ghost",
   statusPending: "badge badge-warning"

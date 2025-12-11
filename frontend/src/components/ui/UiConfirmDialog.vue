@@ -42,12 +42,10 @@ function onConfirm() {
 
 <template>
   <UiModal :modelValue="modelValue" :title="title" @update:modelValue="(v) => emit('update:modelValue', v)">
-    <div>
-      <p v-if="message" class="mb-4">{{ message }}</p>
-      <template #actions>
-        <UiButton :disabled="loading" @click="close">Cancel</UiButton>
-        <UiButton :variant="confirmVariant" :loading="loading" @click="onConfirm">{{ confirmLabel }}</UiButton>
-      </template>
-    </div>
+    <p v-if="message" class="mb-4">{{ message }}</p>
+    <template #actions>
+      <UiButton :disabled="loading" @click="close">Cancel</UiButton>
+      <UiButton :variant="confirmVariant" :loading="loading" @click="onConfirm">{{ confirmLabel }}</UiButton>
+    </template>
   </UiModal>
 </template>

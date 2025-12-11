@@ -1,8 +1,8 @@
-import { Controller, Get, Delete, Query, Param, Res, HttpStatus } from '@nestjs/common';
-import { Response } from 'express';
+import { Controller, Get, Delete, Query, Param, Res, HttpStatus, Req } from '@nestjs/common';
+import { Request, Response } from 'express';
 import { SlackOAuthService } from './slack-oauth.service';
 
-@Controller('integrations/slack')
+@Controller('slack/oauth')
 export class SlackOAuthController {
   constructor(private readonly slackOAuthService: SlackOAuthService) {}
 
@@ -10,6 +10,7 @@ export class SlackOAuthController {
   async startOAuth(
     @Query('organizationId') organizationId: string,
     @Query('userId') userId: string,
+    @Req() req: Request,
     @Res() res: Response,
   ) {
     if (!organizationId || !userId) {
@@ -19,6 +20,19 @@ export class SlackOAuthController {
     }
 
     const authUrl = await this.slackOAuthService.startOAuthFlow(organizationId, userId);
+
+    // If the client expects JSON (e.g., frontend fetch/XHR), return the URL
+    // as JSON so the frontend can perform a top-level navigation. This
+    // prevents fetch from following the redirect to Slack which would trigger
+    // CORS issues when the browser attempts to fetch Slack's authorize URL.
+    const accept = req.headers['accept'] || '';
+    const asJson = typeof accept === 'string' && accept.includes('application/json');
+    const formatJson = req.query?.format === 'json';
+
+    if (asJson || formatJson) {
+      return { url: authUrl };
+    }
+
     return res.redirect(authUrl);
   }
 

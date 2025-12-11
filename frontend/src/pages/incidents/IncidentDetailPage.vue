@@ -7,6 +7,11 @@ import UiTextarea from "@/components/ui/UiTextarea.vue";
 import UiFormField from "@/components/ui/UiFormField.vue";
 import UiSelect from "@/components/ui/UiSelect.vue";
 import UiSkeleton from "@/components/ui/UiSkeleton.vue";
+import UiModal from "@/components/ui/UiModal.vue";
+import SeveritySelector from "@/components/SeveritySelector.vue";
+import ServiceSelector from "@/components/ServiceSelector.vue";
+import StatusSelector from "@/components/StatusSelector.vue";
+import TimelineItem from "@/components/timeline/TimelineItem.vue";
 import { getIncident, IncidentWithRelations, generateSummary, updateSummary, updateIncident, updateIncidentStatus } from "@/api/incidents";
 import { getServices, type Service } from "@/api/services";
 import { useNotifications } from "@/composables/useNotifications";
@@ -22,8 +27,16 @@ const loading = ref(false);
 const generating = ref(false);
 const editMode = ref(false);
 const summaryContent = ref("");
-const editingService = ref(false);
-const selectedServiceId = ref("");
+const selectedServiceId = ref<string | null>(null);
+const selectedSeverity = ref<IncidentWithRelations["severity"]>("MEDIUM");
+
+// Confirmation modal state
+const showConfirmModal = ref(false);
+const pendingChange = ref<{
+  type: 'status' | 'severity' | 'service';
+  value: any;
+  label: string;
+} | null>(null);
 const checkingSlack = ref(false);
 const slackCheckAttempts = ref(0);
 let slackIntervalId: number | null = null;
@@ -69,7 +82,8 @@ const loadIncident = async () => {
   loading.value = true;
   try {
     incident.value = await getIncident(refId.value);
-    selectedServiceId.value = incident.value.serviceId || "";
+    selectedServiceId.value = incident.value.serviceId || null;
+    selectedSeverity.value = incident.value.severity;
     // If Slack channel isn't present yet, poll briefly to see if the worker creates it
     if (!incident.value?.slackChannelId) {
       void startSlackPolling();
@@ -110,23 +124,10 @@ watch(
   }
 );
 
-const severityBadgeClass = (severity: IncidentWithRelations["severity"]) => {
-  switch (severity) {
-    case "CRITICAL":
-      return "badge-error";
-    case "HIGH":
-      return "badge-warning";
-    case "MEDIUM":
-      return "badge-info";
-    case "LOW":
-      return "badge-neutral";
-  }
-};
-
-const formatSeverity = (severity?: IncidentWithRelations["severity"]) =>
-  severity ? severity.toLowerCase() : "";
 const formatStatus = (status?: IncidentWithRelations["status"]) =>
   status ? status.toLowerCase() : "";
+
+// Timeline rendering is delegated to `TimelineItem` component
 
 const formatDate = (iso?: string) =>
   iso
@@ -136,14 +137,37 @@ const formatDate = (iso?: string) =>
       })
     : "";
 
-const canGenerateSummary = computed(() => incident.value?.status === "RESOLVED");
 const latestSummary = computed(() =>
   incident.value?.summaries && incident.value.summaries.length > 0
     ? incident.value.summaries[incident.value.summaries.length - 1]
     : null
 );
 
+const showRegenerateSummaryModal = ref(false);
+
 const handleGenerateSummary = async () => {
+  if (!incident.value) return;
+
+  // If summary already exists, show confirmation modal
+  if (latestSummary.value) {
+    showRegenerateSummaryModal.value = true;
+    return;
+  }
+
+  // Otherwise generate directly
+  await performGenerateSummary();
+};
+
+const confirmRegenerateSummary = async () => {
+  showRegenerateSummaryModal.value = false;
+  await performGenerateSummary();
+};
+
+const cancelRegenerateSummary = () => {
+  showRegenerateSummaryModal.value = false;
+};
+
+const performGenerateSummary = async () => {
   if (!incident.value) return;
 
   generating.value = true;
@@ -185,33 +209,78 @@ const handleCancelEdit = () => {
   summaryContent.value = latestSummary.value?.content || "";
 };
 
-const handleUpdateService = async () => {
+const handleUpdateService = async (serviceId: string | null) => {
   if (!incident.value) return;
 
-  const saving = true;
+  const serviceName = serviceId
+    ? services.value.find(s => s.id === serviceId)?.name || 'Unknown Service'
+    : 'None';
+
+  pendingChange.value = {
+    type: 'service',
+    value: serviceId,
+    label: serviceName
+  };
+  showConfirmModal.value = true;
+};
+
+const handleUpdateSeverity = async (severity: IncidentWithRelations["severity"]) => {
+  if (!incident.value) return;
+
+  pendingChange.value = {
+    type: 'severity',
+    value: severity,
+    label: severity.charAt(0) + severity.slice(1).toLowerCase()
+  };
+  showConfirmModal.value = true;
+};
+
+const handleUpdateStatus = async (status: IncidentWithRelations["status"]) => {
+  if (!incident.value) return;
+
+  pendingChange.value = {
+    type: 'status',
+    value: status,
+    label: status.charAt(0) + status.slice(1).toLowerCase()
+  };
+  showConfirmModal.value = true;
+};
+
+const confirmChange = async () => {
+  if (!incident.value || !pendingChange.value) return;
+
   try {
-    await updateIncident(incident.value.refId, {
-      serviceId: selectedServiceId.value || undefined
-    });
-    editingService.value = false;
+    const { type, value } = pendingChange.value;
+
+    if (type === 'service') {
+      await updateIncident(incident.value.refId, {
+        serviceId: value === null ? null : value
+      });
+      info("Service updated successfully");
+    } else if (type === 'severity') {
+      await updateIncident(incident.value.refId, {
+        severity: value
+      });
+      info("Severity updated successfully");
+    } else if (type === 'status') {
+      await updateIncidentStatus(incident.value.refId, value);
+      info("Status updated successfully");
+    }
+
     await loadIncident();
-    info("Service linked successfully");
   } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : "Failed to update service";
-    error("Failed to update service", { details: errorMsg });
+    const errorMsg = err instanceof Error ? err.message : `Failed to update ${pendingChange.value.type}`;
+    error(`Failed to update ${pendingChange.value.type}`, { details: errorMsg });
+  } finally {
+    showConfirmModal.value = false;
+    pendingChange.value = null;
   }
 };
 
-const handleCancelServiceEdit = () => {
-  editingService.value = false;
-  selectedServiceId.value = incident.value?.serviceId || "";
+const cancelChange = () => {
+  showConfirmModal.value = false;
+  pendingChange.value = null;
 };
-
-const currentServiceName = computed(() => {
-  if (!incident.value?.serviceId) return null;
-  const service = services.value.find(s => s.id === incident.value?.serviceId);
-  return service?.name || incident.value.service?.name || "Unknown";
-});
 
 const saveNotes = async () => {
   if (!incident.value) return;
@@ -225,19 +294,6 @@ const saveNotes = async () => {
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : "Failed to save notes";
     error("Failed to save notes", { details: errorMsg });
-  }
-};
-
-const handleResolve = async () => {
-  if (!incident.value) return;
-
-  try {
-    await updateIncidentStatus(incident.value.refId, "RESOLVED");
-    await loadIncident();
-    info("Incident resolved");
-  } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : "Failed to resolve incident";
-    error("Failed to resolve incident", { details: errorMsg });
   }
 };
 </script>
@@ -260,15 +316,7 @@ const handleResolve = async () => {
         </p>
       </div>
       <div class="flex gap-2">
-          <UiButton
-            variant="secondary"
-            size="sm"
-            :disabled="incident?.status === 'RESOLVED'"
-            @click="handleResolve"
-          >
-            {{ incident?.status === 'RESOLVED' ? 'Resolved' : 'Resolve' }}
-          </UiButton>
-          <UiButton variant="danger" size="sm" disabled> Escalate </UiButton>
+        <UiButton variant="danger" size="sm" disabled> Escalate </UiButton>
       </div>
     </div>
 
@@ -285,68 +333,42 @@ const handleResolve = async () => {
             No timeline events yet.
           </div>
           <ul v-else class="space-y-3">
-            <li
-              v-for="event in incident.timeline"
-              :key="event.id"
-              class="rounded-lg border border-base-200 p-3"
-            >
-              <div class="flex items-center justify-between text-xs text-base-content/70">
-                <span class="font-semibold">{{ event.type }}</span>
-                <span>{{ formatDate(event.timestamp) }}</span>
-              </div>
-              <p class="text-sm text-base-content mt-1" v-if="event.message">
-                {{ event.message }}
-              </p>
+            <li v-for="event in incident.timeline" :key="event.id">
+              <TimelineItem :event="event" />
             </li>
           </ul>
         </UiCard>
 
         <UiCard>
-            <div class="flex items-center justify-between mb-2">
-              <h2 class="text-sm font-semibold">AI Summary</h2>
-              <div class="flex items-center gap-2">
-                <!-- Top-right generate button always available when allowed -->
-                <UiButton
-                  v-if="canGenerateSummary"
-                  variant="secondary"
-                  size="xs"
-                  :loading="generating"
-                  @click="handleGenerateSummary"
-                  aria-label="Generate summary"
-                >
-                  {{ generating ? 'Generating...' : 'Generate' }}
-                </UiButton>
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="text-sm font-semibold">AI Summary</h2>
+            <div class="flex items-center gap-2">
+              <UiButton
+                variant="secondary"
+                size="xs"
+                :loading="generating"
+                @click="handleGenerateSummary"
+                aria-label="Generate summary"
+              >
+                {{ generating ? 'Generating...' : (latestSummary ? 'Regenerate' : 'Generate') }}
+              </UiButton>
 
-                <UiButton
-                  v-if="!latestSummary && canGenerateSummary"
-                  variant="primary"
-                  size="sm"
-                  :loading="generating"
-                  @click="handleGenerateSummary"
-                >
-                  {{ generating ? 'Generating...' : 'Generate Summary' }}
-                </UiButton>
+              <template v-if="latestSummary && !editMode">
+                <UiButton variant="ghost" size="sm" @click="handleEditSummary">Edit</UiButton>
+              </template>
 
-                <template v-else-if="latestSummary && !editMode">
-                  <UiButton variant="ghost" size="sm" @click="handleEditSummary">Edit</UiButton>
-                </template>
-
-                <template v-else-if="editMode">
-                  <UiButton variant="ghost" size="sm" @click="handleCancelEdit">Cancel</UiButton>
-                  <UiButton variant="primary" size="sm" @click="handleSaveSummary">Save</UiButton>
-                </template>
-              </div>
+              <template v-else-if="editMode">
+                <UiButton variant="ghost" size="sm" @click="handleCancelEdit">Cancel</UiButton>
+                <UiButton variant="primary" size="sm" @click="handleSaveSummary">Save</UiButton>
+              </template>
             </div>
-
-          <div v-if="!latestSummary && !canGenerateSummary" class="text-sm text-base-content/70">
-            Summaries can be generated once the incident is resolved.
           </div>
 
-          <div v-else-if="!latestSummary && canGenerateSummary" class="text-sm text-base-content/70">
-            No summary yet. Click "Generate Summary" to create one using AI.
+          <div v-if="!latestSummary" class="text-sm text-base-content/70">
+            No summary yet. Click "Generate" to create one using AI.
           </div>
 
-          <div v-else-if="latestSummary">
+          <div v-else>
             <UiTextarea
               v-if="editMode"
               v-model="summaryContent"
@@ -369,40 +391,32 @@ const handleResolve = async () => {
         <UiCard>
           <h2 class="text-sm font-semibold mb-2">Properties</h2>
           <dl class="text-xs space-y-2">
-            <div class="flex justify-between">
-              <dt class="text-base-content/60">Severity</dt>
-              <dd class="font-medium">
-                <span class="badge badge-sm capitalize" :class="severityBadgeClass(incident.severity)">
-                  {{ formatSeverity(incident.severity) }}
-                </span>
+            <div class="flex justify-between items-start gap-3">
+              <dt class="text-base-content/60 pt-1">Status</dt>
+              <dd class="text-right flex-1 min-w-0">
+                <StatusSelector
+                  :model-value="incident.status"
+                  @update:model-value="handleUpdateStatus"
+                />
+              </dd>
+            </div>
+            <div class="flex justify-between items-start gap-3">
+              <dt class="text-base-content/60 pt-1">Severity</dt>
+              <dd class="text-right flex-1 min-w-0">
+                <SeveritySelector
+                  :model-value="incident.severity"
+                  @update:model-value="handleUpdateSeverity"
+                />
               </dd>
             </div>
             <div class="flex justify-between items-start gap-3">
               <dt class="text-base-content/60 pt-1">Linked service</dt>
               <dd class="text-right flex-1 min-w-0">
-                <div v-if="!editingService">
-                  <div class="font-medium text-sm mb-1" v-if="currentServiceName">
-                    {{ currentServiceName }}
-                  </div>
-                  <div class="text-xs text-base-content/60 mb-1" v-else>
-                    Not linked
-                  </div>
-                  <UiButton variant="ghost" size="xs" @click="editingService = true">
-                    {{ currentServiceName ? 'Change' : 'Link service' }}
-                  </UiButton>
-                </div>
-                <div v-else class="space-y-2">
-                  <UiSelect v-model="selectedServiceId" class="w-full text-xs">
-                    <option value="">None</option>
-                    <option v-for="service in services" :key="service.id" :value="service.id">
-                      {{ service.name }}
-                    </option>
-                  </UiSelect>
-                  <div class="flex gap-1 justify-end">
-                    <UiButton variant="ghost" size="xs" @click="handleCancelServiceEdit">Cancel</UiButton>
-                    <UiButton variant="primary" size="xs" @click="handleUpdateService">Save</UiButton>
-                  </div>
-                </div>
+                <ServiceSelector
+                  :model-value="incident.serviceId"
+                  :services="services"
+                  @update:model-value="handleUpdateService"
+                />
               </dd>
             </div>
             <div class="flex justify-between">
@@ -423,10 +437,6 @@ const handleResolve = async () => {
                 </span>
                 <span v-else class="text-base-content/70">None</span>
               </dd>
-            </div>
-            <div class="flex justify-between">
-              <dt class="text-base-content/60">Status</dt>
-              <dd class="font-medium capitalize">{{ formatStatus(incident.status) }}</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-base-content/60">Created</dt>
@@ -456,5 +466,32 @@ const handleResolve = async () => {
     <UiCard v-else-if="!loading && !incident">
       <p class="text-sm text-base-content/70">Incident not found.</p>
     </UiCard>
+
+    <!-- Confirmation Modal -->
+    <UiModal v-model="showConfirmModal" :title="`Change ${pendingChange?.type || ''}`">
+      <p v-if="pendingChange">
+        Change <strong>{{ pendingChange.type }}</strong> to
+        <strong>{{ pendingChange.label }}</strong>?
+      </p>
+      <template #actions>
+        <UiButton variant="ghost" @click="cancelChange">Cancel</UiButton>
+        <UiButton variant="primary" @click="confirmChange">Confirm</UiButton>
+      </template>
+    </UiModal>
+
+    <!-- Regenerate Summary Confirmation Modal -->
+    <UiModal v-model="showRegenerateSummaryModal" title="Regenerate AI Summary">
+      <p>
+        An AI summary already exists for this incident.
+        Generating a new summary will replace the existing one.
+      </p>
+      <p class="mt-2 text-sm text-base-content/70">
+        Do you want to continue?
+      </p>
+      <template #actions>
+        <UiButton variant="ghost" @click="cancelRegenerateSummary">Cancel</UiButton>
+        <UiButton variant="primary" @click="confirmRegenerateSummary">Regenerate</UiButton>
+      </template>
+    </UiModal>
   </section>
 </template>

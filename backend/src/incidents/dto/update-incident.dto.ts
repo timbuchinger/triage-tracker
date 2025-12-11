@@ -16,7 +16,7 @@ export class UpdateIncidentDto {
 
   @IsOptional()
   @IsString()
-  serviceId?: string;
+  serviceId?: string | null;
 
   @IsOptional()
   @IsString()

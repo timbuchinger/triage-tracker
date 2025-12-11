@@ -33,7 +33,17 @@ export interface TimelineEvent {
   message?: string | null;
   slackTs?: string | null;
   slackUser?: string | null;
-  metadata?: unknown;
+  metadata?: TimelineMetadata | null;
+}
+
+export interface TimelineMetadata {
+  fromStatus?: IncidentStatus;
+  toStatus?: IncidentStatus;
+  actorId?: string;
+  actorName?: string;
+  highlighted?: boolean;
+  capturedBy?: string;
+  [k: string]: any;
 }
 
 export interface IncidentSummary {

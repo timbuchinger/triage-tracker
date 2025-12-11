@@ -44,6 +44,32 @@ export class SlackClient {
     return result.messages?.[0];
   }
 
+  async fetchUser(userId: string) {
+    const result = await this.call<{ user?: any }>("users.info", { user: userId });
+    return result.user;
+  }
+
+  async resolveUserNamesInText(text?: string) {
+    if (!text) return text;
+
+    // Find unique Slack user mentions like <@U123ABC>
+    const matches = Array.from(text.matchAll(/<@([A-Z0-9]+)>/g));
+    const ids = Array.from(new Set(matches.map((m) => m[1])));
+    if (!ids.length) return text;
+
+    // Fetch user info for each id in parallel, ignoring failures per-user
+    const users = await Promise.all(ids.map((id) => this.fetchUser(id).catch(() => null)));
+
+    const nameById = new Map<string, string>();
+    ids.forEach((id, i) => {
+      const u = users[i];
+      const display = u?.profile?.display_name || u?.real_name || u?.name || id;
+      nameById.set(id, display);
+    });
+
+    return text.replace(/<@([A-Z0-9]+)>/g, (_m, id) => `@${nameById.get(id) ?? id}`);
+  }
+
   async pinMessage(channel: string, timestamp: string) {
     return this.call("pins.add", { channel, timestamp });
   }

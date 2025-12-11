@@ -59,11 +59,11 @@ describe('SlackJobProcessor', () => {
     expect(mockSlackClient.fetchMessage).toHaveBeenCalledWith('C1', '1672531200.000');
     expect(mockPrisma.timelineEvent.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        incidentId: 'inc_1',
-        type: 'HIGHLIGHTED_MESSAGE',
-        message: 'Important message',
-        slackTs: '1672531200.000',
-        slackUser: 'U123',
+      incidentId: 'inc_1',
+      type: 'MESSAGE',
+      message: 'Important message',
+      slackTs: '1672531200.000',
+      slackUser: 'U123',
         metadata: expect.objectContaining({
           capturedBy: 'U456'
         }),
@@ -119,7 +119,7 @@ describe('SlackJobProcessor', () => {
     expect(mockPrisma.timelineEvent.findFirst).toHaveBeenCalledWith({
       where: {
         incidentId: 'inc_1',
-        type: 'HIGHLIGHTED_MESSAGE',
+        type: 'MESSAGE',
         slackTs: '1672531200.000'
       }
     });

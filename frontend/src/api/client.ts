@@ -13,9 +13,14 @@ export function getAccessToken() {
 }
 
 export async function request<T>(path: string, options: { method?: HttpMethod; body?: any } = {}) {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
+  const headers: Record<string, string> = {};
+
+  // Only set Content-Type when there is a body to send. This avoids adding
+  // unnecessary request headers for GET requests which can trigger CORS
+  // preflight checks when not needed in some dev setups.
+  if (options.body) {
+    headers["Content-Type"] = "application/json";
+  }
 
   if (accessToken) {
     headers["Authorization"] = `Bearer ${accessToken}`;

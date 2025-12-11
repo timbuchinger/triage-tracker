@@ -2,12 +2,14 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { badges } from '@/design/tokens';
 
+type Status = 'OPEN' | 'INVESTIGATING' | 'MITIGATED' | 'RESOLVED';
+
 const props = defineProps<{
-  modelValue: 'OWNER' | 'MEMBER';
+  modelValue: Status;
 }>();
 
 const emit = defineEmits<{
-  'update:modelValue': [value: 'OWNER' | 'MEMBER'];
+  'update:modelValue': [value: Status];
 }>();
 
 const isOpen = ref(false);
@@ -15,18 +17,20 @@ const dropdownRef = ref<HTMLDivElement | null>(null);
 const buttonRef = ref<HTMLButtonElement | null>(null);
 const menuRef = ref<HTMLDivElement | null>(null);
 
-const roles = [
-  { value: 'MEMBER', label: 'Member', colorClass: badges.roleMember },
-  { value: 'OWNER', label: 'Admin', colorClass: badges.roleOwner },
-] as const;
+const statuses = [
+  { value: 'OPEN' as const, label: 'Open', colorClass: badges.statusOpen },
+  { value: 'INVESTIGATING' as const, label: 'Investigating', colorClass: badges.statusInvestigating },
+  { value: 'MITIGATED' as const, label: 'Mitigated', colorClass: badges.statusMitigated },
+  { value: 'RESOLVED' as const, label: 'Resolved', colorClass: badges.statusResolved },
+];
 
-const selectedRole = computed(() => 
-  roles.find(r => r.value === props.modelValue) || roles[0]
+const selectedStatus = computed(() => 
+  statuses.find(s => s.value === props.modelValue) || statuses[0]
 );
 
-const selectRole = (role: typeof roles[number]) => {
-  if (role.value !== props.modelValue) {
-    emit('update:modelValue', role.value);
+const selectStatus = (status: typeof statuses[number]) => {
+  if (status.value !== props.modelValue) {
+    emit('update:modelValue', status.value);
   }
   isOpen.value = false;
 };
@@ -37,7 +41,6 @@ const updateMenuPosition = () => {
   const buttonRect = buttonRef.value.getBoundingClientRect();
   const menu = menuRef.value;
   
-  // Position menu below and aligned to the right edge of the button
   menu.style.top = `${buttonRect.bottom + window.scrollY + 4}px`;
   menu.style.left = `${buttonRect.right + window.scrollX - menu.offsetWidth}px`;
 };
@@ -74,10 +77,10 @@ onBeforeUnmount(() => {
       ref="buttonRef"
       type="button"
       @click="toggleDropdown"
-      class="badge cursor-pointer hover:brightness-110 transition-all"
-      :class="selectedRole.colorClass"
+      class="badge badge-sm capitalize cursor-pointer hover:brightness-110 transition-all"
+      :class="selectedStatus.colorClass"
     >
-      {{ selectedRole.label }}
+      {{ selectedStatus.label }}
       <svg 
         xmlns="http://www.w3.org/2000/svg" 
         fill="none" 
@@ -95,17 +98,17 @@ onBeforeUnmount(() => {
       <div
         v-if="isOpen"
         ref="menuRef"
-        class="fixed z-50 bg-base-100 border border-base-300 rounded-md shadow-lg min-w-[120px]"
+        class="fixed z-50 bg-base-100 border border-base-300 rounded-md shadow-lg min-w-[140px]"
       >
         <button
-          v-for="role in roles"
-          :key="role.value"
+          v-for="status in statuses"
+          :key="status.value"
           type="button"
-          @click="selectRole(role)"
+          @click="selectStatus(status)"
           class="w-full px-3 py-2 text-left hover:bg-base-200 first:rounded-t-md last:rounded-b-md flex items-center gap-2"
         >
-          <span class="badge" :class="role.colorClass">
-            {{ role.label }}
+          <span class="badge badge-sm capitalize" :class="status.colorClass">
+            {{ status.label }}
           </span>
         </button>
       </div>

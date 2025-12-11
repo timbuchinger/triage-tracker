@@ -16,8 +16,10 @@ const emit = defineEmits<{
   "update:modelValue": [(v: any) => void];
 }>();
 
+const STATUS_OPTIONS = ["OPEN", "INVESTIGATING", "MITIGATED", "RESOLVED"];
+
 const internal = reactive({
-  statuses: props.modelValue?.statuses ? [...props.modelValue.statuses] : ["OPEN"],
+  statuses: props.modelValue?.statuses ? [...props.modelValue.statuses] : [...STATUS_OPTIONS],
   dateRange: props.modelValue?.dateRange ?? "30",
   owner: props.modelValue?.owner ?? "everyone"
 });
@@ -26,7 +28,7 @@ watch(
   () => props.modelValue,
   (v) => {
     if (!v) return;
-    internal.statuses = v.statuses ? [...v.statuses] : [];
+    internal.statuses = v.statuses ? [...v.statuses] : [...STATUS_OPTIONS];
     internal.dateRange = v.dateRange ?? "30";
     internal.owner = v.owner ?? "everyone";
   }
@@ -58,7 +60,7 @@ watch(
   { deep: true }
 );
 
-const STATUS_OPTIONS = ["OPEN", "INVESTIGATING", "MITIGATED", "RESOLVED"];
+
 
 const toggleStatus = (s: string) => {
   const idx = internal.statuses.indexOf(s);
@@ -67,7 +69,7 @@ const toggleStatus = (s: string) => {
 };
 
 const resetDefaults = () => {
-  internal.statuses = ["OPEN"];
+  internal.statuses = [...STATUS_OPTIONS];
   internal.dateRange = "30";
   internal.owner = "everyone";
 };

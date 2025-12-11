@@ -81,15 +81,16 @@ export class IncidentsService {
   }
 
   async update(refId: string, dto: UpdateIncidentDto) {
+    const data: any = {};
+    if (dto.title !== undefined) data.title = dto.title;
+    if (dto.description !== undefined) data.description = dto.description;
+    if (dto.severity !== undefined) data.severity = dto.severity;
+    if (dto.serviceId !== undefined) data.serviceId = dto.serviceId;
+    if (dto.internalNotes !== undefined) data.internalNotes = dto.internalNotes;
+
     return this.prisma.incident.update({
       where: { refId },
-      data: {
-        title: dto.title,
-        description: dto.description,
-        severity: dto.severity,
-        serviceId: dto.serviceId,
-        internalNotes: dto.internalNotes
-      }
+      data
     });
   }
 
@@ -334,10 +335,6 @@ export class IncidentsService {
       throw new NotFoundException(`Incident ${refId} not found`);
     }
 
-    if (incident.status !== Status.RESOLVED) {
-      throw new BadRequestException('Can only generate summaries for resolved incidents');
-    }
-
     const summaryContent = await this.aiService.generateIncidentSummary(incident.id);
 
     const summary = await this.prisma.incidentSummary.create({
@@ -403,6 +400,30 @@ export class IncidentsService {
       data: { status }
     });
 
+    // Resolve actor name when update comes from the UI userId
+    let actorName: string | undefined = undefined;
+    if (userId) {
+      try {
+        const u = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { name: true, email: true }
+        });
+        actorName = u?.name || u?.email || undefined;
+      } catch (_) {
+        actorName = undefined;
+      }
+    }
+
+    // Build metadata to include the before/after status for display
+    const baseMetadata = typeof event.metadata === 'object' && event.metadata !== null
+      ? { ...(event.metadata as object) }
+      : {};
+    const finalMetadata = {
+      ...baseMetadata,
+      fromStatus: incidentBefore.status,
+      toStatus: status,
+    };
+
     await this.prisma.timelineEvent.create({
       data: {
         incidentId: incident.id,
@@ -410,8 +431,9 @@ export class IncidentsService {
         timestamp: event.timestamp ? new Date(event.timestamp) : undefined,
         message: event.message,
         slackTs: event.slackTs,
-        slackUser: event.slackUser,
-        metadata: event.metadata ?? { status }
+        // prefer explicit slack user from event (Slack flows) otherwise use resolved actor name
+        slackUser: event.slackUser ?? actorName ?? null,
+        metadata: finalMetadata
       }
     });
 

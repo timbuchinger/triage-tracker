@@ -155,29 +155,54 @@ export class SlackJobProcessor implements OnModuleInit, OnModuleDestroy {
       });
 
       this.logger.log(`Updated highlighted message metadata for incident ${incident.refId} timeline`);
+      this.logger.log(`Updated message metadata for incident ${incident.refId} timeline`);
       return;
     }
 
     // Create a new timeline event
+    // Resolve user mentions in the message text to human-readable names
+    const resolvedText = await this.slackClient.resolveUserNamesInText((message as any).text);
+    // Try to resolve the message author to a display name
+    let authorName: string | undefined = undefined;
+    if ((message as any).user) {
+      try {
+        const u = await this.slackClient.fetchUser((message as any).user);
+        authorName = u?.profile?.display_name || u?.real_name || u?.name || (message as any).user;
+      } catch (_) {
+        authorName = (message as any).user;
+      }
+    }
+
+    // Try to resolve the reacting user to a display name
+    let reactorName: string | undefined = undefined;
+    if (userId) {
+      try {
+        const u = await this.slackClient.fetchUser(userId);
+        reactorName = u?.profile?.display_name || u?.real_name || u?.name || userId;
+      } catch (_) {
+        reactorName = userId;
+      }
+    }
+
     await this.prisma.timelineEvent.create({
       // Prisma client types may be out of sync in tests; cast to any to avoid type errors until client is regenerated
       data: ({
         incidentId: incident.id,
         type: EventType.HIGHLIGHTED_MESSAGE,
         timestamp: new Date(parseFloat(messageTs) * 1000),
-        message: message.text || '',
+        message: resolvedText || (message.text || ''),
         slackTs: messageTs,
-        slackUser: message.user,
+        slackUser: authorName ?? (message.user as string | undefined) ?? null,
         metadata: {
           reactions: (message as any).reactions || [],
           permalink: (message as any).permalink,
-          capturedBy: userId,
+          capturedBy: reactorName ?? userId
         },
         thumbsCount
       } as any)
     });
 
-    this.logger.log(`Added highlighted message to incident ${incident.refId} timeline`);
+    this.logger.log(`Added message to incident ${incident.refId} timeline`);
   }
 
   private async handleReactionRemoved(data: ReactionEventJob) {
@@ -195,7 +220,7 @@ export class SlackJobProcessor implements OnModuleInit, OnModuleDestroy {
     const existingEvent = await this.prisma.timelineEvent.findFirst({
       where: {
         incidentId: incident.id,
-        type: EventType.HIGHLIGHTED_MESSAGE,
+        type: EventType.MESSAGE,
         slackTs: messageTs
       }
     });
@@ -253,7 +278,7 @@ export class SlackJobProcessor implements OnModuleInit, OnModuleDestroy {
       where: { id: existingEvent.id }
     });
 
-    this.logger.log(`Removed highlighted message from incident ${incident.refId} timeline`);
+    this.logger.log(`Removed message from incident ${incident.refId} timeline`);
   }
 
   private parseRedisUrl(url: string) {

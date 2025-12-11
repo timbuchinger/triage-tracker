@@ -62,27 +62,27 @@ async function connectSlack() {
   // browser performs the OAuth redirect flow directly (avoids CORS issues
   // caused by using fetch/XHR for an endpoint that ultimately redirects
   // to Slack's OAuth URL).
-  loading.value = true;
   error.value = null;
   if (!ORG_ID.value || !USER_ID.value) {
     error.value = 'You must be signed in to connect Slack.';
-    loading.value = false;
     return;
   }
 
+  // Instead of making an API call, directly navigate to the backend endpoint
+  // which will initiate the OAuth flow and redirect to Slack
   window.location.href = `/api/integrations/slack/start?organizationId=${encodeURIComponent(ORG_ID.value)}&userId=${encodeURIComponent(USER_ID.value)}`;
 }
 
 async function linkSlackUser() {
-  loading.value = true;
   error.value = null;
   // Redirect to backend endpoint which will perform OAuth redirect
   if (!ORG_ID.value || !USER_ID.value) {
     error.value = 'You must be signed in to link Slack.';
-    loading.value = false;
     return;
   }
 
+  // Instead of making an API call, directly navigate to the backend endpoint
+  // which will initiate the OAuth flow and redirect to Slack
   window.location.href = `/api/integrations/slack/user/start?organizationId=${encodeURIComponent(ORG_ID.value)}&userId=${encodeURIComponent(USER_ID.value)}`;
 }
 
