@@ -13,6 +13,7 @@ import { OrganizationsService } from './organizations.service';
 import { InvitesService } from './invites.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { OrganizationGuard } from '../auth/guards/organization.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser, CurrentUserData } from '../auth/decorators/current-user.decorator';
 import { CreateInviteDto } from './dto/create-invite.dto';
@@ -29,11 +30,8 @@ export class OrganizationsController {
   ) {}
 
   @Get(':orgId/members')
-  async getMembers(@Param('orgId') orgId: string, @CurrentUser() user: CurrentUserData) {
-    // Ensure user belongs to this organization
-    if (user.organizationId !== orgId) {
-      throw new Error('Access denied');
-    }
+  @UseGuards(OrganizationGuard)
+  async getMembers(@Param('orgId') orgId: string) {
     return this.organizationsService.getMembers(orgId);
   }
 
@@ -45,9 +43,6 @@ export class OrganizationsController {
     @Body() dto: UpdateMemberRoleDto,
     @CurrentUser() user: CurrentUserData,
   ) {
-    if (user.organizationId !== orgId) {
-      throw new Error('Access denied');
-    }
     return this.organizationsService.updateMemberRole(orgId, userId, dto, user.id);
   }
 
@@ -58,18 +53,13 @@ export class OrganizationsController {
     @Param('userId') userId: string,
     @CurrentUser() user: CurrentUserData,
   ) {
-    if (user.organizationId !== orgId) {
-      throw new Error('Access denied');
-    }
     return this.organizationsService.removeMember(orgId, userId, user.id);
   }
 
   @Get(':orgId/invites')
   @Roles(UserRole.OWNER)
-  async listInvites(@Param('orgId') orgId: string, @CurrentUser() user: CurrentUserData) {
-    if (user.organizationId !== orgId) {
-      throw new Error('Access denied');
-    }
+  @UseGuards(OrganizationGuard)
+  async listInvites(@Param('orgId') orgId: string) {
     return this.invitesService.listInvites(orgId);
   }
 
@@ -78,11 +68,7 @@ export class OrganizationsController {
   async createInvite(
     @Param('orgId') orgId: string,
     @Body() dto: CreateInviteDto,
-    @CurrentUser() user: CurrentUserData,
   ) {
-    if (user.organizationId !== orgId) {
-      throw new Error('Access denied');
-    }
     return this.invitesService.createInvite(orgId, dto);
   }
 
