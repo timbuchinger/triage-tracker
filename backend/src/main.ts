@@ -56,8 +56,8 @@ async function bootstrap() {
   app.setGlobalPrefix("api");
   const port = process.env.PORT || 3000;
   await app.listen(port);
-  // eslint-disable-next-line no-console
-  console.log(`Triage Tracker API running on http://localhost:${port}/api`);
+  const startupLogger = new (require("./otel-logger.service").OtelLoggerService)("NestApplication");
+  startupLogger.log(`Triage Tracker API running on http://localhost:${port}/api`);
 }
 
 bootstrap();

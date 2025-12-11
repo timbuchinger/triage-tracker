@@ -21,9 +21,12 @@ if (!process.env.OTEL_SERVICE_NAME) {
   }
 }
 // Validate required Slack environment variables for worker (bot token required).
+// Use OtelLoggerService to surface errors consistently.
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { OtelLoggerService } = require("../otel-logger.service");
+const workerLogger = new OtelLoggerService("WorkerBootstrap");
 if (!process.env.SLACK_BOT_TOKEN || process.env.SLACK_BOT_TOKEN.trim().length === 0) {
-  // eslint-disable-next-line no-console
-  console.error("Missing required Slack environment variable: SLACK_BOT_TOKEN");
+  workerLogger.error("Missing required Slack environment variable: SLACK_BOT_TOKEN");
   // eslint-disable-next-line no-process-exit
   process.exit(1);
 }

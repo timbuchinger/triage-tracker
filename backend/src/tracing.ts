@@ -1,4 +1,8 @@
 import "reflect-metadata";
+// Use the OtelLoggerService for consistent logging (falls back to console when OTel is unavailable)
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { OtelLoggerService } = require("./otel-logger.service");
+const traceLogger = new OtelLoggerService("tracing");
 
 // Initialize OpenTelemetry only if the required packages are present and tracing
 // is not explicitly disabled. This avoids test-time failures when dev deps are
@@ -71,17 +75,14 @@ if (process.env.DISABLE_TRACING === "true") {
       if (startResult && typeof startResult.then === "function") {
         startResult
           .then(() => {
-            // eslint-disable-next-line no-console
-            console.log("OpenTelemetry initialized (traces:", traceEndpoint, "logs:", logEndpoint, ")");
+            traceLogger.log("OpenTelemetry initialized (traces: " + traceEndpoint + ", logs: " + logEndpoint + ")");
           })
           .catch((err: any) => {
-            // eslint-disable-next-line no-console
-            console.error("OpenTelemetry failed to start:", err);
+            traceLogger.error("OpenTelemetry failed to start:", err);
           });
       } else {
         // Synchronous start
-        // eslint-disable-next-line no-console
-        console.log("OpenTelemetry initialized (traces:", traceEndpoint, "logs:", logEndpoint, ")");
+        traceLogger.log("OpenTelemetry initialized (traces: " + traceEndpoint + ", logs: " + logEndpoint + ")");
       }
     } catch (err: any) {
       // eslint-disable-next-line no-console
@@ -92,11 +93,9 @@ if (process.env.DISABLE_TRACING === "true") {
       try {
         await loggerProvider.shutdown();
         await sdk.shutdown();
-        // eslint-disable-next-line no-console
-        console.log("OpenTelemetry shutdown complete");
+        traceLogger.log("OpenTelemetry shutdown complete");
       } catch (err) {
-        // eslint-disable-next-line no-console
-        console.error("Error shutting down OpenTelemetry:", err);
+        traceLogger.error("Error shutting down OpenTelemetry:", err);
       }
     };
 
@@ -105,10 +104,8 @@ if (process.env.DISABLE_TRACING === "true") {
   } catch (err) {
     // If optional OpenTelemetry packages are not installed or initialization failed,
     // continue without tracing but surface the error to logs for debugging.
-    // eslint-disable-next-line no-console
-    console.warn("OpenTelemetry initialization failed; tracing disabled for this process.");
-    // eslint-disable-next-line no-console
-    console.error(err && err.stack ? err.stack : err);
+    traceLogger.warn("OpenTelemetry initialization failed; tracing disabled for this process.");
+    traceLogger.error(err && err.stack ? err.stack : err);
   }
 }
 
