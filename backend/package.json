@@ -10,7 +10,13 @@
     "dev:worker": "ts-node-dev --respawn --transpile-only src/worker/main.worker.ts",
     "test": "jest --coverage",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "db:seed": "ts-node prisma/seed.ts"
+    "db:seed": "ts-node prisma/seed.ts",
+    "cmd:build-and-migrate": "npm run build && npx prisma migrate deploy && npm run start",
+    "cmd:reset-db": "npx prisma migrate reset --force && npm run db:seed",
+    "cmd:build-slack-manifest": "node ./scripts/generate-slack-manifest.js",
+    "cmd:update-manifest": "node ./scripts/update-manifest.js",
+    "cmd:install-git-hooks": "node ./scripts/install-git-hooks.js",
+    "cmd:create-user": "npx ts-node prisma/create-user.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"

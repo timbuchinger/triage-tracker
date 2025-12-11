@@ -1,9 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# If the manifest template changed in this commit, regenerate the manifest
-if git diff --cached --name-only | grep -q "integrations/slack/manifest.template.yml"; then
-  echo "manifest.template.yml changed — regenerating manifest..."
-  ./scripts/update-manifest.sh --env-file integrations/slack/.env.slack
-  git add integrations/slack/manifest.yml
+# If the manifest template changed in this commit (old or new path),
+# regenerate the manifest and add the generated file.
+CHANGED_TEMPLATE=$(git diff --cached --name-only | grep -E "integrations/slack/manifest.template.yml|backend/docs/integrations/slack/manifest.template.yml" | head -n1 || true)
+if [[ -n "$CHANGED_TEMPLATE" ]]; then
+  echo "manifest.template.yml changed ($CHANGED_TEMPLATE) — regenerating manifest..."
+  TEMPLATE_DIR=$(dirname "$CHANGED_TEMPLATE")
+  ENV_FILE="$TEMPLATE_DIR/.env.slack"
+  if [[ -f "$ENV_FILE" ]]; then
+    ./scripts/update-manifest.sh --env-file "$ENV_FILE"
+  else
+    ./scripts/update-manifest.sh
+  fi
+  # Add the generated manifest next to the template
+  git add "$TEMPLATE_DIR/manifest.yml" || true
 fi

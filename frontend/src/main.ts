@@ -8,6 +8,32 @@ import { routes } from "./router";
 import { useAuthStore } from "./stores/auth";
 import { useNotificationStore } from "./stores/notifications";
 
+// Ensure the user's stored theme is applied as early as possible so
+// initial route renders (including the 404 page) match the chosen theme.
+const THEME_STORAGE_KEY = "triage-theme";
+const applyInitialTheme = () => {
+  try {
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY) as ("nord" | "nord-dark") | null;
+    const targets = [document.documentElement, document.body, document.getElementById("app")].filter(Boolean) as Element[];
+    if (stored === "nord" || stored === "nord-dark") {
+      targets.forEach((el) => el.setAttribute("data-theme", stored));
+      return;
+    }
+
+    // If nothing is stored, preserve any existing data-theme already present on an element.
+    const existing = targets.map((el) => el.getAttribute("data-theme")).find(Boolean);
+    if (existing) {
+      targets.forEach((el) => {
+        if (!el.getAttribute("data-theme")) el.setAttribute("data-theme", existing as string);
+      });
+    }
+  } catch (e) {
+    // ignore - non-fatal
+  }
+};
+
+applyInitialTheme();
+
 const router = createRouter({
   history: createWebHistory(),
   routes

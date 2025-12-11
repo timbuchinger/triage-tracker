@@ -13,8 +13,8 @@ Quick start
 
 ```
 APP_NAME="Triage Tracker"
-EVENTS_URL="https://<your-ngrok>.io/api/slack/events"
-INTERACTIVITY_URL="https://<your-ngrok>.io/api/slack/interactions"
+EVENTS_URL="https://<your-ngrok>.io/api/integrations/slack/events"
+INTERACTIVITY_URL="https://<your-ngrok>.io/api/integrations/slack/interactive"
 ```
 
 2. Run the generator script from the repo root:
@@ -34,7 +34,7 @@ Slash commands
 
 - Slack requires per-command Request URLs to be set in the App Manager UI (manifest cannot set `request_url` per command). Create the slash command using the Slack App Manager:
 	- Command: `/triage`
-	- Request URL: `https://<your-ngrok>.io/api/slack/commands/inc`
+	- Request URL: `https://<your-ngrok>.io/api/integrations/slack/commands/inc`
 	- Short description: "Create or get triage information"
 
 After creating the command in the UI, re-install the app (if required) and copy any new tokens/secrets into `backend/.env`.

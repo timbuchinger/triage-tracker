@@ -8,6 +8,12 @@ features:
     display_name: "Triage Tracker Bot"
     always_online: false
 
+  slash_commands:
+    - command: /inc
+      url: https://caperingly-equiangular-maurine.ngrok-free.dev/api/integrations/slack/commands/inc
+      description: Manage incidents
+      should_escape: false
+
 
 oauth_config:
   scopes:
@@ -21,6 +27,7 @@ oauth_config:
       - commands
       - incoming-webhook
       - app_mentions:read
+      - reactions:read
 
 settings:
   event_subscriptions:
@@ -28,9 +35,11 @@ settings:
     bot_events:
       - app_mention
       - message.im
+      - reaction_added
+      - reaction_removed
   interactivity:
     is_enabled: true
-    request_url: "https://caperingly-equiangular-maurine.ngrok-free.dev/api/integrations/slack/interactions"
+    request_url: "https://caperingly-equiangular-maurine.ngrok-free.dev/api/slack/interactions"
   org_deploy_enabled: false
   socket_mode_enabled: false
   token_rotation_enabled: false

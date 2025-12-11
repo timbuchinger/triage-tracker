@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import UiCard from "@/components/ui/UiCard.vue";
 import UiButton from "@/components/ui/UiButton.vue";
@@ -24,6 +24,43 @@ const editMode = ref(false);
 const summaryContent = ref("");
 const editingService = ref(false);
 const selectedServiceId = ref("");
+const checkingSlack = ref(false);
+const slackCheckAttempts = ref(0);
+let slackIntervalId: number | null = null;
+
+const stopSlackPolling = () => {
+  if (slackIntervalId !== null) {
+    clearInterval(slackIntervalId);
+    slackIntervalId = null;
+  }
+  checkingSlack.value = false;
+  slackCheckAttempts.value = 0;
+};
+
+const startSlackPolling = async () => {
+  stopSlackPolling();
+  slackCheckAttempts.value = 0;
+  checkingSlack.value = true;
+  // poll every second up to 5 attempts
+  slackIntervalId = window.setInterval(async () => {
+    if (!refId.value) return;
+    try {
+      const updated = await getIncident(refId.value);
+      incident.value = updated;
+      if (incident.value?.slackChannelId) {
+        stopSlackPolling();
+        return;
+      }
+    } catch (err) {
+      // ignore transient errors while polling
+    }
+
+    slackCheckAttempts.value += 1;
+    if (slackCheckAttempts.value >= 5) {
+      stopSlackPolling();
+    }
+  }, 1000);
+};
 
 const goBack = () => router.push({ name: "incidents" });
 
@@ -34,6 +71,12 @@ const loadIncident = async () => {
     incident.value = await getIncident(refId.value);
     services.value = incident.value.service ? [incident.value.service] : [];
     selectedServiceId.value = incident.value.serviceId || "";
+    // If Slack channel isn't present yet, poll briefly to see if the worker creates it
+    if (!incident.value?.slackChannelId) {
+      void startSlackPolling();
+    } else {
+      stopSlackPolling();
+    }
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Failed to load incident";
     error("Failed to load incident", { details: msg });
@@ -44,6 +87,10 @@ const loadIncident = async () => {
 
 onMounted(() => {
   void loadIncident();
+});
+
+onBeforeUnmount(() => {
+  stopSlackPolling();
 });
 
 watch(
@@ -345,6 +392,10 @@ const handleResolve = async () => {
                 >
                   {{ incident.slackChannelName || incident.slackChannelId }}
                 </a>
+                <span v-else-if="checkingSlack" class="text-base-content/70 flex items-center">
+                  <span class="loading loading-spinner loading-sm mr-2" aria-hidden="true"></span>
+                  Checking…
+                </span>
                 <span v-else class="text-base-content/70">None</span>
               </dd>
             </div>

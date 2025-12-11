@@ -10,6 +10,7 @@ import MembersPage from "@/pages/organization/MembersPage.vue";
 import TeamsListPage from "@/pages/teams/TeamsListPage.vue";
 import TeamDetailPage from "@/pages/teams/TeamDetailPage.vue";
 import ServicesPage from "@/pages/services/ServicesPage.vue";
+import NotFoundPage from "@/pages/NotFoundPage.vue";
 
 export const routes: RouteRecordRaw[] = [
   {
@@ -62,5 +63,11 @@ export const routes: RouteRecordRaw[] = [
     path: "/services",
     name: "services",
     component: ServicesPage
+  },
+  {
+    path: "/:pathMatch(.*)*",
+    name: "not-found",
+    component: NotFoundPage,
+    meta: { public: true }
   }
 ];
