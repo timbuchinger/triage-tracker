@@ -1,36 +1,25 @@
 import * as dotenv from "dotenv";
 dotenv.config();
+import ConfigService from "./config/config.service";
+
 // Ensure a service-specific OTEL_SERVICE_NAME is available before initializing tracing.
-// Prefer an explicit `OTEL_SERVICE_NAME_PREFIX`, otherwise fall back to a generic
-// `SERVICE_NAME` if provided in `backend/.env`. This allows users to set a single
-// base service name (e.g. `triage-tracker`) and have process-specific names
-// derived as `triage-tracker-api` and `triage-tracker-worker`.
-const baseServiceName = process.env.OTEL_SERVICE_NAME_PREFIX || process.env.SERVICE_NAME;
+// We compute it from the centralized config service so all env access is consistent.
+const config = ConfigService;
 if (!process.env.OTEL_SERVICE_NAME) {
-  if (baseServiceName && baseServiceName.trim().length > 0) {
-    process.env.OTEL_SERVICE_NAME = `${baseServiceName}-api`;
-  } else {
-    process.env.OTEL_SERVICE_NAME = "triage-tracker-api";
-  }
-  // Validate required Slack environment variables early and fail fast if missing.
-  const missingSlackVars: string[] = [];
-  if (!process.env.SLACK_BOT_TOKEN || process.env.SLACK_BOT_TOKEN.trim().length === 0) {
-    missingSlackVars.push("SLACK_BOT_TOKEN");
-  }
-  if (!process.env.SLACK_SIGNING_SECRET || process.env.SLACK_SIGNING_SECRET.trim().length === 0) {
-    missingSlackVars.push("SLACK_SIGNING_SECRET");
-  }
-  if (missingSlackVars.length > 0) {
-    // eslint-disable-next-line no-console
-    console.error(`Missing required Slack environment variables: ${missingSlackVars.join(", ")}`);
-    // eslint-disable-next-line no-process-exit
-    process.exit(1);
-  }
+  process.env.OTEL_SERVICE_NAME = config.otelServiceName;
+}
 
-  }
+// Validate required Slack environment variables early and fail fast if missing.
+const missingSlackVars = config.validateRequired(["SLACK_BOT_TOKEN", "SLACK_SIGNING_SECRET"]);
+if (missingSlackVars.length > 0) {
+  // eslint-disable-next-line no-console
+  console.error(`Missing required Slack environment variables: ${missingSlackVars.join(", ")}`);
+  // eslint-disable-next-line no-process-exit
+  process.exit(1);
+}
 
-  // Use require so the initializer runs after dotenv/config and after we've set the name.
-  void require("./tracing");
+// Use require so the initializer runs after dotenv/config and after we've set the name.
+void require("./tracing");
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";

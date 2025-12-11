@@ -11,16 +11,19 @@ import { SlackSignatureGuard } from "./slack-signature.guard";
 import { SlackController } from "./slack.controller";
 import { SlackOAuthController } from "./slack-oauth.controller";
 import { SlackOAuthService } from "./slack-oauth.service";
+import { ConfigModule } from "../config/config.module";
+import { ConfigService } from "../config/config.service";
 
 @Module({
-  imports: [forwardRef(() => IncidentsModule), PrismaModule, forwardRef(() => SlackIntegrationModule)],
+  imports: [forwardRef(() => IncidentsModule), PrismaModule, forwardRef(() => SlackIntegrationModule), ConfigModule],
   controllers: [SlackController, SlackOAuthController],
   providers: [
     {
       provide: SLACK_CONFIG,
-      useFactory: (): SlackConfig => ({
-        signingSecret: process.env.SLACK_SIGNING_SECRET ?? "",
-        botToken: process.env.SLACK_BOT_TOKEN ?? ""
+      inject: [ConfigService],
+      useFactory: (config: ConfigService): SlackConfig => ({
+        signingSecret: config.slackSigningSecret ?? "",
+        botToken: config.slackBotToken ?? ""
       })
     },
     {
