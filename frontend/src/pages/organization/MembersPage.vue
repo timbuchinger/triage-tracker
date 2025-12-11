@@ -9,6 +9,7 @@ import UiFormField from "@/components/ui/UiFormField.vue";
 import UiInput from "@/components/ui/UiInput.vue";
 import UiSelect from "@/components/ui/UiSelect.vue";
 import UiModal from "@/components/ui/UiModal.vue";
+import UiConfirmDialog from "@/components/ui/UiConfirmDialog.vue";
 
 const authStore = useAuthStore();
 const { success, error } = useNotifications();
@@ -281,29 +282,23 @@ onMounted(async () => {
     </UiModal>
 
     <!-- Role Change Confirmation Modal -->
-    <UiModal v-model="showRoleChangeConfirm" title="Confirm Role Change">
-      <div class="space-y-4">
-        <p>
-          Change role for
-          <strong>{{ members.find(m => m.id === (pendingRoleChange && pendingRoleChange.userId))?.email || 'this member' }}</strong>
-          to
-          <strong>{{ pendingRoleChange ? (pendingRoleChange.newRole === 'OWNER' ? 'Admin' : 'Member') : '' }}</strong>?
-        </p>
-
-        <div class="flex justify-end gap-2">
-          <UiButton variant="ghost" @click="cancelRoleChange">Cancel</UiButton>
-          <UiButton variant="primary" @click="confirmRoleChange">Confirm</UiButton>
-        </div>
-      </div>
-    </UiModal>
+    <UiConfirmDialog
+      v-model="showRoleChangeConfirm"
+      title="Confirm Role Change"
+      :message="pendingRoleChange ? `Change role for ${members.find(m => m.id === pendingRoleChange.userId)?.email || 'this member'} to ${pendingRoleChange.newRole === 'OWNER' ? 'Admin' : 'Member'}?` : ''"
+      confirmLabel="Confirm"
+      confirmVariant="primary"
+      @confirm="confirmRoleChange"
+    />
 
     <!-- Remove Member Confirmation Modal -->
-    <UiModal v-model="showRemoveMemberModal" title="Remove Member">
-      <p v-if="memberToRemoveEmail">Are you sure you want to remove "{{ memberToRemoveEmail }}" from the organization?</p>
-      <template #actions>
-        <UiButton @click="showRemoveMemberModal = false">Cancel</UiButton>
-        <UiButton variant="error" @click="confirmRemoveMember">Remove</UiButton>
-      </template>
-    </UiModal>
+    <UiConfirmDialog
+      v-model="showRemoveMemberModal"
+      title="Remove Member"
+      :message="memberToRemoveEmail ? `Are you sure you want to remove '${memberToRemoveEmail}' from the organization?` : ''"
+      confirmLabel="Remove"
+      confirmVariant="error"
+      @confirm="confirmRemoveMember"
+    />
   </div>
 </template>

@@ -10,6 +10,7 @@ import UiButton from "@/components/ui/UiButton.vue";
 import UiFormField from "@/components/ui/UiFormField.vue";
 import UiSelect from "@/components/ui/UiSelect.vue";
 import UiModal from "@/components/ui/UiModal.vue";
+import UiConfirmDialog from "@/components/ui/UiConfirmDialog.vue";
 import type { Service } from "@/api/services";
 
 const route = useRoute();
@@ -287,19 +288,21 @@ onMounted(async () => {
     <div v-else-if="loading">Loading...</div>
   </div>
 
-  <UiModal v-model="showRemoveServiceModal" title="Remove Service">
-    <p v-if="serviceToRemove">Are you sure you want to remove "{{ serviceToRemove.name }}" from this team?</p>
-    <template #actions>
-      <UiButton @click="showRemoveServiceModal = false">Cancel</UiButton>
-      <UiButton variant="error" @click="confirmRemoveService">Remove</UiButton>
-    </template>
-  </UiModal>
+  <UiConfirmDialog
+    v-model="showRemoveServiceModal"
+    title="Remove Service"
+    :message="serviceToRemove ? `Are you sure you want to remove '${serviceToRemove.name}' from this team?` : ''"
+    confirmLabel="Remove"
+    confirmVariant="error"
+    @confirm="confirmRemoveService"
+  />
 
-  <UiModal v-model="showRemoveMemberModal" title="Remove Member">
-    <p v-if="memberToRemoveId">Are you sure you want to remove this member from the team?</p>
-    <template #actions>
-      <UiButton @click="showRemoveMemberModal = false">Cancel</UiButton>
-      <UiButton variant="error" @click="confirmRemoveMember">Remove</UiButton>
-    </template>
-  </UiModal>
+  <UiConfirmDialog
+    v-model="showRemoveMemberModal"
+    title="Remove Member"
+    :message="memberToRemoveId ? 'Are you sure you want to remove this member from the team?' : ''"
+    confirmLabel="Remove"
+    confirmVariant="error"
+    @confirm="confirmRemoveMember"
+  />
 </template>

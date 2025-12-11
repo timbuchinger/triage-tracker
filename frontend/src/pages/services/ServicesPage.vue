@@ -6,6 +6,7 @@ import UiInput from "@/components/ui/UiInput.vue";
 import UiFormField from "@/components/ui/UiFormField.vue";
 import UiSelect from "@/components/ui/UiSelect.vue";
 import UiModal from "@/components/ui/UiModal.vue";
+import UiConfirmDialog from "@/components/ui/UiConfirmDialog.vue";
 import { getServices, createService, deleteService, updateService, type Service } from "@/api/services";
 import { listTeams, type TeamSummary } from "@/api/teams";
 import { useNotifications } from "@/composables/useNotifications";
@@ -236,11 +237,12 @@ const getTeamName = (teamId: string) => {
       </p>
     </UiCard>
   </div>
-  <UiModal v-model="showRemoveServiceModal" title="Remove Service">
-    <p v-if="serviceToRemove">Are you sure you want to remove "{{ serviceToRemove.name }}"?</p>
-    <template #actions>
-      <UiButton @click="showRemoveServiceModal = false">Cancel</UiButton>
-      <UiButton variant="error" @click="confirmRemoveService">Remove</UiButton>
-    </template>
-  </UiModal>
+  <UiConfirmDialog
+    v-model="showRemoveServiceModal"
+    title="Remove Service"
+    :message="serviceToRemove ? `Are you sure you want to remove '${serviceToRemove.name}'?` : ''"
+    confirmLabel="Remove"
+    confirmVariant="error"
+    @confirm="confirmRemoveService"
+  />
 </template>
