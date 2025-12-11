@@ -8,7 +8,8 @@ The front-end uses **Vue 3**, **Tailwind CSS v4**, and **DaisyUI v5** with the `
 
 1. **Do NOT invent new CSS styles ad hoc.**
    - Do NOT add raw `style=""` attributes for spacing, borders, fonts, or colors.
-   - Do NOT use arbitrary Tailwind values like `p-[14px]` or `rounded-[6px]`.
+   - Do NOT use arbitrary Tailwind values like `p-[14px]`, `rounded-[6px]`, or `max-w-[60%]`.
+   - All values must come from the Tailwind scale defined in `tailwind.config.ts`.
 
 2. **Use the shared UI components from `src/components/ui/`**
    - Buttons: `UiButton`
@@ -47,7 +48,13 @@ The front-end uses **Vue 3**, **Tailwind CSS v4**, and **DaisyUI v5** with the `
    - Errors and hints must go through `UiFormField`’s `error` and `hint` props.
    - Keep consistent vertical rhythm using `gap-3` or `space-y-3`.
 
-8. **Dark mode**
+
+8. **Badges and status indicators**
+   - Use DaisyUI badge classes: `badge`, `badge-primary`, `badge-secondary`, etc.
+   - For selectable badges (like role dropdowns), use or create a custom component in `src/components/` that maintains the badge styling while providing interaction.
+   - Do NOT mix styled badges with unstyled form controls for the same data type. Visual consistency is critical.
+   - Example: If user roles are displayed as colored badges, role selection should also use badge-styled options, not plain text dropdowns.
+9. **Dark mode**
    - Do not special-case dark mode in components.
    - Rely on DaisyUI `nord` / `nord-dark` theme tokens. Theme switching is handled at the document root.
 
@@ -60,6 +67,7 @@ Before finalizing a PR or code change that affects UI, review:
 - Are ALL spacing and radius values from the Tailwind scale and not arbitrary?
 - Are ALL colors semantic (DaisyUI/tailwind classes) rather than hex values?
 - Did you avoid inline styles for layout, spacing, radius, and colors?
+- Did you check `ui-patterns.md` for established patterns before creating new interaction designs?
 
 ## Loading indicators (recommended patterns)
 

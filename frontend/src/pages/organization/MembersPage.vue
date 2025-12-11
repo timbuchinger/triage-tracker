@@ -10,6 +10,8 @@ import UiInput from "@/components/ui/UiInput.vue";
 import UiSelect from "@/components/ui/UiSelect.vue";
 import UiModal from "@/components/ui/UiModal.vue";
 import UiConfirmDialog from "@/components/ui/UiConfirmDialog.vue";
+import RoleSelector from "@/components/RoleSelector.vue";
+import { badges } from "@/design/tokens";
 
 const authStore = useAuthStore();
 const { success, error } = useNotifications();
@@ -186,17 +188,17 @@ onMounted(async () => {
               <td>{{ member.email }}</td>
               <td>{{ member.name || "—" }}</td>
               <td>
-                <div v-if="authStore.isOwner && member.id !== authStore.user?.id">
-                  <UiSelect v-model="selectedRoles[member.id]" @change="onSelectChange(member.id, selectedRoles[member.id])">
-                    <option value="MEMBER">Member</option>
-                    <option value="OWNER">Admin</option>
-                  </UiSelect>
-                </div>
-                <div v-else>
-                  <span :class="member.role === 'OWNER' ? 'badge badge-primary' : 'badge badge-secondary'">
-                    {{ member.role === 'OWNER' ? 'Admin' : 'Member' }}
-                  </span>
-                </div>
+                <RoleSelector
+                  v-if="authStore.isOwner && member.id !== authStore.user?.id"
+                  v-model="selectedRoles[member.id]"
+                  @update:model-value="onSelectChange(member.id, $event)"
+                />
+                <span
+                  v-else
+                  :class="member.role === 'OWNER' ? badges.roleOwner : badges.roleMember"
+                >
+                  {{ member.role === 'OWNER' ? 'Admin' : 'Member' }}
+                </span>
               </td>
               <td>{{ formatDate(member.createdAt) }}</td>
               <td>{{ member.lastLogin ? formatDate(member.lastLogin) : '—' }}</td>
@@ -235,7 +237,7 @@ onMounted(async () => {
             <tr v-for="invite in invites" :key="invite.id">
               <td>{{ invite.email }}</td>
               <td>
-                <span :class="invite.role === 'OWNER' ? 'badge badge-primary' : 'badge badge-secondary'">
+                <span :class="invite.role === 'OWNER' ? badges.roleOwner : badges.roleMember">
                   {{ invite.role === 'OWNER' ? 'Admin' : 'Member' }}
                 </span>
               </td>
@@ -282,16 +284,23 @@ onMounted(async () => {
     </UiModal>
 
     <!-- Role Change Confirmation Modal -->
-    <UiConfirmDialog
-      v-model="showRoleChangeConfirm"
-      title="Confirm Role Change"
-      :message="pendingRoleChange ? `Change role for ${members.find(m => m.id === pendingRoleChange.userId)?.email || 'this member'} to ${pendingRoleChange.newRole === 'OWNER' ? 'Admin' : 'Member'}?` : ''"
-      confirmLabel="Confirm"
-      confirmVariant="primary"
-      @confirm="confirmRoleChange"
-    />
+    <UiModal v-model="showRoleChangeConfirm" title="Confirm Role Change">
+      <div class="space-y-4">
+        <p>
+          Change role for
+          <strong>{{ members.find(m => m.id === (pendingRoleChange && pendingRoleChange.userId))?.email || 'this member' }}</strong>
+          to
+          <strong>{{ pendingRoleChange ? (pendingRoleChange.newRole === 'OWNER' ? 'Admin' : 'Member') : '' }}</strong>?
+        </p>
 
-    <!-- Remove Member Confirmation Modal -->
+        <div class="flex justify-end gap-2">
+          <UiButton variant="ghost" @click="cancelRoleChange">Cancel</UiButton>
+          <UiButton variant="primary" @click="confirmRoleChange">Confirm</UiButton>
+        </div>
+      </div>
+    </UiModal>
+
+    <!-- Remove Member Confirmation -->
     <UiConfirmDialog
       v-model="showRemoveMemberModal"
       title="Remove Member"

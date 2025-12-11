@@ -31,6 +31,14 @@ export const typography = {
   label: "text-xs font-medium text-base-content/70 uppercase tracking-wide"
 } as const;
 
+export const badges = {
+  roleOwner: "badge badge-accent",
+  roleMember: "badge badge-secondary",
+  statusActive: "badge badge-success",
+  statusInactive: "badge badge-ghost",
+  statusPending: "badge badge-warning"
+} as const;
+
 export const triageTracker = {
   appName: "Triage Tracker"
 };

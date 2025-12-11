@@ -43,6 +43,14 @@ Agents MUST:
 - Use the AppShell layout patterns
 - Follow the theme rules (`nord` / `nord-dark`)
 - Avoid arbitrary Tailwind classes
+### **Design Tokens (`frontend/src/design/tokens.ts`)**
+
+Agents MUST:
+
+- Propose changes to `frontend/src/design/tokens.ts` when a design change or learnings imply token updates (for example: colors, spacing, radii, or theme-related values).
+- Present proposed token updates as a concise suggestion or a draft PR rather than applying them automatically.
+- Never apply or commit changes to `tokens.ts` without explicit user consent. Obtain approval from the user or a maintainer before making any modifications to this file.
+- If the user approves, update the tokens, run any required checks, and notify the user of the applied changes.
 
 ---
 

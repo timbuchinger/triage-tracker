@@ -3,12 +3,14 @@ import { onMounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import UiCard from "@/components/ui/UiCard.vue";
 import UiButton from "@/components/ui/UiButton.vue";
+import UiSelect from "@/components/ui/UiSelect.vue";
 import IncidentsFilterBar from "@/components/IncidentsFilterBar.vue";
 import { Incident, listIncidents } from "@/api/incidents";
 import { useNotifications } from "@/composables/useNotifications";
+import { updateIncident } from "@/api/incidents";
 
 const router = useRouter();
-const { error } = useNotifications();
+const { error, info } = useNotifications();
 
 const incidents = ref<Incident[]>([]);
 const loading = ref(false);
@@ -102,6 +104,27 @@ const severityBadgeClass = (severity: Incident["severity"]) => {
   }
 };
 
+const severityOptions: { label: string; value: Incident["severity"] }[] = [
+  { label: "Critical", value: "CRITICAL" },
+  { label: "High", value: "HIGH" },
+  { label: "Medium", value: "MEDIUM" },
+  { label: "Low", value: "LOW" }
+];
+
+const onChangeSeverity = async (incident: Incident, newSeverity: Incident["severity"]) => {
+  const old = incident.severity;
+  // optimistic update
+  incident.severity = newSeverity;
+  try {
+    await updateIncident(incident.refId, { severity: newSeverity });
+    info("Severity updated");
+  } catch (err) {
+    incident.severity = old;
+    const errorMessage = err instanceof Error ? err.message : "Failed to update severity";
+    error("Failed to update severity", { details: errorMessage });
+  }
+};
+
 const formatSeverity = (severity: Incident["severity"]) => severity.toLowerCase();
 const formatStatus = (status: Incident["status"]) => status.toLowerCase();
 
@@ -167,11 +190,17 @@ const formatDate = (isoString: string) =>
                 {{ incident.title }}
               </td>
               <td class="py-3 pr-4 text-left">
-                <div
-                  class="badge badge-sm font-semibold capitalize"
-                  :class="severityBadgeClass(incident.severity)"
-                >
-                  {{ formatSeverity(incident.severity) }}
+                <div class="w-36">
+                  <UiSelect
+                    :modelValue="incident.severity"
+                    @update:modelValue="(v) => onChangeSeverity(incident, v)"
+                    @click.stop
+                  >
+                    <option disabled value="">Select severity</option>
+                    <option v-for="opt in severityOptions" :key="opt.value" :value="opt.value">
+                      {{ opt.label }}
+                    </option>
+                  </UiSelect>
                 </div>
               </td>
               <td class="py-3 pr-4 text-left text-sm capitalize text-base-content/80">

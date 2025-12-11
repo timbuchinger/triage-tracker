@@ -31,7 +31,18 @@ import UiSkeleton from "@/components/ui/UiSkeleton.vue";
 - Use DaisyUI semantic classes: `btn-primary`, `bg-base-100`, `text-base-content`, etc.
 - Do **not** use arbitrary values like `p-[14px]`, `rounded-[10px]`, or hex colors.
 
+### Badges and status indicators
+
+- Use DaisyUI badge classes: `badge`, `badge-primary`, `badge-secondary`, etc.
+- When users can select or change a badge value (like roles or statuses), create a custom component that maintains badge styling in both the display and selection states.
+- Do NOT use plain `<select>` dropdowns alongside styled badges for the same data type.
+- Example: See `RoleSelector.vue` for a pattern that displays roles as badges while allowing selection.
+
 If you need a new UI primitive or layout pattern, create it in `src/components/ui/` and reuse it consistently instead of inlining styles.
+
+## UI Patterns
+
+For common interaction patterns (inline editing, property lists, related data loading), consult `frontend/docs/ui-patterns.md` before implementing. Follow established patterns to maintain consistency.
 
 ### Loading primitives
 

@@ -8,7 +8,7 @@ import UiFormField from "@/components/ui/UiFormField.vue";
 import UiSelect from "@/components/ui/UiSelect.vue";
 import UiSkeleton from "@/components/ui/UiSkeleton.vue";
 import { getIncident, IncidentWithRelations, generateSummary, updateSummary, updateIncident, updateIncidentStatus } from "@/api/incidents";
-import { type Service } from "@/api/teams";
+import { getServices, type Service } from "@/api/services";
 import { useNotifications } from "@/composables/useNotifications";
 
 const route = useRoute();
@@ -69,7 +69,6 @@ const loadIncident = async () => {
   loading.value = true;
   try {
     incident.value = await getIncident(refId.value);
-    services.value = incident.value.service ? [incident.value.service] : [];
     selectedServiceId.value = incident.value.serviceId || "";
     // If Slack channel isn't present yet, poll briefly to see if the worker creates it
     if (!incident.value?.slackChannelId) {
@@ -85,8 +84,18 @@ const loadIncident = async () => {
   }
 };
 
+const loadServices = async () => {
+  try {
+    services.value = await getServices();
+  } catch (err) {
+    // silently fail - services are optional
+    console.error("Failed to load services", err);
+  }
+};
+
 onMounted(() => {
   void loadIncident();
+  void loadServices();
 });
 
 onBeforeUnmount(() => {
@@ -179,13 +188,14 @@ const handleCancelEdit = () => {
 const handleUpdateService = async () => {
   if (!incident.value) return;
 
+  const saving = true;
   try {
     await updateIncident(incident.value.refId, {
       serviceId: selectedServiceId.value || undefined
     });
     editingService.value = false;
     await loadIncident();
-    info("Service updated successfully");
+    info("Service linked successfully");
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : "Failed to update service";
     error("Failed to update service", { details: errorMsg });
@@ -196,6 +206,12 @@ const handleCancelServiceEdit = () => {
   editingService.value = false;
   selectedServiceId.value = incident.value?.serviceId || "";
 };
+
+const currentServiceName = computed(() => {
+  if (!incident.value?.serviceId) return null;
+  const service = services.value.find(s => s.id === incident.value?.serviceId);
+  return service?.name || incident.value.service?.name || "Unknown";
+});
 
 const saveNotes = async () => {
   if (!incident.value) return;
@@ -361,23 +377,32 @@ const handleResolve = async () => {
                 </span>
               </dd>
             </div>
-            <div class="flex justify-between items-center">
-              <dt class="text-base-content/60">Service (optional)</dt>
-              <dd class="font-medium" v-if="!editingService">
-                {{ incident.service?.name || 'None' }}
-                <UiButton variant="ghost" size="xs" @click="editingService = true" class="ml-2">
-                  Edit
-                </UiButton>
-              </dd>
-              <dd v-else class="flex items-center gap-2">
-                <UiSelect v-model="selectedServiceId" class="text-xs">
-                  <option value="">None</option>
-                  <option v-for="service in services" :key="service.id" :value="service.id">
-                    {{ service.name }}
-                  </option>
-                </UiSelect>
-                <UiButton variant="ghost" size="xs" @click="handleCancelServiceEdit">Cancel</UiButton>
-                <UiButton variant="primary" size="xs" @click="handleUpdateService">Save</UiButton>
+            <div class="flex justify-between items-start gap-3">
+              <dt class="text-base-content/60 pt-1">Linked service</dt>
+              <dd class="text-right flex-1 min-w-0">
+                <div v-if="!editingService">
+                  <div class="font-medium text-sm mb-1" v-if="currentServiceName">
+                    {{ currentServiceName }}
+                  </div>
+                  <div class="text-xs text-base-content/60 mb-1" v-else>
+                    Not linked
+                  </div>
+                  <UiButton variant="ghost" size="xs" @click="editingService = true">
+                    {{ currentServiceName ? 'Change' : 'Link service' }}
+                  </UiButton>
+                </div>
+                <div v-else class="space-y-2">
+                  <UiSelect v-model="selectedServiceId" class="w-full text-xs">
+                    <option value="">None</option>
+                    <option v-for="service in services" :key="service.id" :value="service.id">
+                      {{ service.name }}
+                    </option>
+                  </UiSelect>
+                  <div class="flex gap-1 justify-end">
+                    <UiButton variant="ghost" size="xs" @click="handleCancelServiceEdit">Cancel</UiButton>
+                    <UiButton variant="primary" size="xs" @click="handleUpdateService">Save</UiButton>
+                  </div>
+                </div>
               </dd>
             </div>
             <div class="flex justify-between">
