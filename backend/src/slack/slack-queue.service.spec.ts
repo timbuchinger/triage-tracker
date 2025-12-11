@@ -20,8 +20,13 @@ describe('SlackQueueService', () => {
     expect(res).toEqual({});
   });
 
-  it('queueReactionEvent calls queue.add', async () => {
-    const res = await svc.queueReactionEvent({ channelId: 'C', messageTs: 'm', userId: 'u', reaction: 'thumbsup', eventTs: 'e' });
+  it('queueReactionAdded calls queue.add', async () => {
+    const res = await svc.queueReactionAdded({ channelId: 'C', messageTs: 'm', userId: 'u', reaction: 'thumbsup', eventTs: 'e' });
+    expect(res).toEqual({});
+  });
+
+  it('queueReactionRemoved calls queue.add', async () => {
+    const res = await svc.queueReactionRemoved({ channelId: 'C', messageTs: 'm', userId: 'u', reaction: 'thumbsup', eventTs: 'e' });
     expect(res).toEqual({});
   });
 

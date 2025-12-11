@@ -10,7 +10,11 @@ describe('SlackIntegrationController', () => {
     handleAppUninstalled: jest.fn()
   };
 
-  const ctrl = new SlackIntegrationController(svc as any);
+  const slackIncService: any = {
+    // Add any necessary mock methods
+  };
+
+  const ctrl = new SlackIntegrationController(svc as any, slackIncService as any);
 
   beforeEach(() => jest.clearAllMocks());
 

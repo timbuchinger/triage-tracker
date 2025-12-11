@@ -1,5 +1,5 @@
 import { IsEnum, IsOptional, IsString } from "class-validator";
-import { Status } from "@prisma/client";
+import { Status, Prisma } from "@prisma/client";
 
 export class UpdateStatusDto {
   @IsEnum(Status)
@@ -14,5 +14,5 @@ export class UpdateStatusDto {
   timestamp?: string;
 
   @IsOptional()
-  metadata?: unknown;
+  metadata?: Prisma.InputJsonValue;
 }

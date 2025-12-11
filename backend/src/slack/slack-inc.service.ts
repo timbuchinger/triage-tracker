@@ -504,7 +504,19 @@ export class SlackIncService {
     if (event.type === 'reaction_added' &&
         (event.reaction === '+1' || event.reaction === 'thumbsup')) {
 
-      await this.slackQueue.queueReactionEvent({
+      await this.slackQueue.queueReactionAdded({
+        channelId: event.item.channel,
+        messageTs: event.item.ts,
+        userId: event.user,
+        reaction: event.reaction,
+        eventTs: event.event_ts,
+      });
+    }
+
+    if (event.type === 'reaction_removed' &&
+        (event.reaction === '+1' || event.reaction === 'thumbsup')) {
+
+      await this.slackQueue.queueReactionRemoved({
         channelId: event.item.channel,
         messageTs: event.item.ts,
         userId: event.user,

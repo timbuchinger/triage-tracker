@@ -387,7 +387,17 @@ export class IncidentsService {
     });
   }
 
-  async updateStatusAndLog(refId: string, status: Status, event: AddEventDto) {
+  async updateStatusAndLog(refId: string, status: Status, event: AddEventDto, userId?: string) {
+    // Fetch the incident with Slack channel info and user info
+    const incidentBefore = await this.prisma.incident.findUnique({
+      where: { refId },
+      include: { createdBy: true }
+    });
+
+    if (!incidentBefore) {
+      throw new NotFoundException(`Incident ${refId} not found`);
+    }
+
     const incident = await this.prisma.incident.update({
       where: { refId },
       data: { status }
@@ -404,6 +414,26 @@ export class IncidentsService {
         metadata: event.metadata ?? { status }
       }
     });
+
+    // If this update came from the UI (userId provided) and there's a Slack channel, notify Slack
+    if (userId && incidentBefore.slackChannelId && this.slackQueue) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true, email: true }
+      });
+
+      const userName = user?.name || user?.email || 'Unknown user';
+      const statusText = event.message || `Status changed to ${status}`;
+
+      // Queue the Slack notification
+      await this.slackQueue.enqueueStatusUpdate({
+        channelId: incidentBefore.slackChannelId,
+        refId: incident.refId,
+        status,
+        statusText,
+        userName
+      });
+    }
 
     return incident;
   }

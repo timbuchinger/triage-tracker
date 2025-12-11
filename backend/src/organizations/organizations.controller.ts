@@ -31,12 +31,13 @@ export class OrganizationsController {
 
   @Get(':orgId/members')
   @UseGuards(OrganizationGuard)
-  async getMembers(@Param('orgId') orgId: string) {
+  async getMembers(@Param('orgId') orgId: string, @CurrentUser() user: CurrentUserData) {
     return this.organizationsService.getMembers(orgId);
   }
 
   @Patch(':orgId/members/:userId/role')
   @Roles(UserRole.OWNER)
+  @UseGuards(OrganizationGuard)
   async updateMemberRole(
     @Param('orgId') orgId: string,
     @Param('userId') userId: string,
@@ -48,6 +49,7 @@ export class OrganizationsController {
 
   @Delete(':orgId/members/:userId')
   @Roles(UserRole.OWNER)
+  @UseGuards(OrganizationGuard)
   async removeMember(
     @Param('orgId') orgId: string,
     @Param('userId') userId: string,
@@ -59,15 +61,17 @@ export class OrganizationsController {
   @Get(':orgId/invites')
   @Roles(UserRole.OWNER)
   @UseGuards(OrganizationGuard)
-  async listInvites(@Param('orgId') orgId: string) {
+  async listInvites(@Param('orgId') orgId: string, @CurrentUser() user: CurrentUserData) {
     return this.invitesService.listInvites(orgId);
   }
 
   @Post(':orgId/invites')
   @Roles(UserRole.OWNER)
+  @UseGuards(OrganizationGuard)
   async createInvite(
     @Param('orgId') orgId: string,
     @Body() dto: CreateInviteDto,
+    @CurrentUser() user: CurrentUserData,
   ) {
     return this.invitesService.createInvite(orgId, dto);
   }

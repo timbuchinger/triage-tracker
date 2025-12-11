@@ -18,6 +18,7 @@ export type StatusUpdateJob = {
   refId: string;
   status: string;
   statusText: string;
+  userName?: string;
 };
 
 export type ReactionEventJob = {
@@ -49,9 +50,14 @@ export class SlackQueueService {
     return this.queue.add("post-status-update", job, { removeOnComplete: true });
   }
 
-  queueReactionEvent(job: ReactionEventJob) {
+  queueReactionAdded(job: ReactionEventJob) {
     this.logger.log(`Enqueue reaction-added for channel ${job.channelId}`);
     return this.queue.add("reaction-added", job, { removeOnComplete: true });
+  }
+
+  queueReactionRemoved(job: ReactionEventJob) {
+    this.logger.log(`Enqueue reaction-removed for channel ${job.channelId}`);
+    return this.queue.add("reaction-removed", job, { removeOnComplete: true });
   }
 
   private parseRedisUrl(url: string) {

@@ -57,7 +57,7 @@ If the `/inc` slash command does not exist in your Slack app, add it manually in
 
 Troubleshooting & tips
 
-- If you see a 404 for `/api/slack/interactions` or `/api/slack/commands/inc`, make sure Slack is configured to call the canonical paths that include the `api` global prefix and `integrations/slack` path segment. Example canonical paths:
+- If you see a 404 for `/api/integrations/slack/interactions` or `/api/integrations/slack/commands/inc`, make sure Slack is configured to call the canonical paths that include the `api` global prefix and `integrations/slack` path segment. Example canonical paths:
 	- Slash command: `/api/integrations/slack/commands/inc`
 	- Interactivity: `/api/integrations/slack/interactions`
 	- Events: `/api/integrations/slack/events`

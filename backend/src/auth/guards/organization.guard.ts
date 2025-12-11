@@ -3,9 +3,9 @@ import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@
 @Injectable()
 export class OrganizationGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest();
-    const user = request.user;
-    const orgId = request.params?.orgId;
+    const req = context.switchToHttp().getRequest();
+    const user = req.user;
+    const orgId = req.params?.orgId;
 
     if (!user || !orgId) {
       throw new ForbiddenException('Access denied');

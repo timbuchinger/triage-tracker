@@ -427,7 +427,7 @@ describe("SlackIncService", () => {
 
     const result = await service.handleInteraction(JSON.stringify(payload));
 
-    expect(result).toEqual({ response_action: "push", view: expect.any(Object) });
+    expect(result).toEqual({ response_action: "update", view: expect.any(Object) });
 
     const statusModal = (result as any).view;
     const statusBlock = statusModal.blocks.find((b: any) => b.block_id === "status");

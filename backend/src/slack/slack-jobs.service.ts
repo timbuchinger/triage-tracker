@@ -88,13 +88,20 @@ export class SlackJobsService {
     refId: string;
     status: string;
     statusText: string;
+    userName?: string;
   }) {
     // use global client for simple posts (fallback)
     const botToken = process.env.SLACK_BOT_TOKEN ?? '';
     const client = this.clientFactory ? this.clientFactory({ signingSecret: process.env.SLACK_SIGNING_SECRET ?? '', botToken }) : new SlackClient({ signingSecret: process.env.SLACK_SIGNING_SECRET ?? '', botToken });
+
+    // Format message according to standardized format
+    const messageText = params.userName
+      ? `Status update from ${params.userName}: ${params.statusText}`
+      : `Status for ${params.refId} set to ${params.status} — ${params.statusText}`;
+
     return client.postMessage({
       channel: params.channelId,
-      text: `Status for ${params.refId} set to ${params.status} — ${params.statusText}`
+      text: messageText
     });
   }
 

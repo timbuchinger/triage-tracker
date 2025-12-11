@@ -56,14 +56,14 @@ export class IncidentsController {
   }
 
   @Patch(":refId/status")
-  updateStatus(@Param("refId") refId: string, @Body() dto: UpdateStatusDto) {
+  updateStatus(@Param("refId") refId: string, @Body() dto: UpdateStatusDto, @CurrentUser() user: CurrentUserData) {
     // Delegate to service which updates status and writes a timeline event
     return this.incidentsService.updateStatusAndLog(refId, dto.status as any, {
       type: "STATUS_CHANGE" as any,
       message: dto.message,
       timestamp: dto.timestamp,
       metadata: dto.metadata,
-    });
+    }, user.id);
   }
 
   @Patch(":refId/summaries/:summaryId")

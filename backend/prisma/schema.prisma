@@ -43,6 +43,7 @@ model TimelineEvent {
   slackTs     String?
   slackUser   String?
   metadata    Json?
+  thumbsCount Int       @default(0)
 
   incident    Incident  @relation(fields: [incidentId], references: [id])
 }
