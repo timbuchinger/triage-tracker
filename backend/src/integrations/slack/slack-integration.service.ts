@@ -54,23 +54,29 @@ export class SlackIntegrationService {
       },
     });
 
-    const scopes = [
-      'chat:write',
-      'chat:write.public',
-      'channels:read',
-      'groups:read',
-      'im:read',
-      'mpim:read',
-      'users:read',
-      'commands',
-    ].join(',');
-
     const params = new URLSearchParams({
       client_id: this.clientId,
-      scope: scopes,
       redirect_uri: this.redirectUri,
       state,
     });
+
+    if (flow === 'user_link') {
+      // For user linking, use user_scope to get user identity
+      params.set('user_scope', 'identity.basic,identity.email,identity.avatar');
+    } else {
+      // For workspace installation, use bot scopes
+      const scopes = [
+        'chat:write',
+        'chat:write.public',
+        'channels:read',
+        'groups:read',
+        'im:read',
+        'mpim:read',
+        'users:read',
+        'commands',
+      ].join(',');
+      params.set('scope', scopes);
+    }
 
     return `https://slack.com/oauth/v2/authorize?${params.toString()}`;
   }
@@ -171,6 +177,8 @@ export class SlackIntegrationService {
         },
       });
 
+      this.logger.log(`Slack user linked: userId=${oauthState.userId}, slackUserId=${slackUserId}, integrationId=${integration.id}`);
+
       await this.prisma.oAuthState.delete({ where: { state } });
 
       return { teamName: integration.teamName, organizationId: oauthState.organizationId };
@@ -214,13 +222,21 @@ export class SlackIntegrationService {
 
   async getUserMappingStatus(organizationId: string, userId: string) {
     const integration = await this.prisma.slackIntegration.findUnique({ where: { organizationId } });
-    if (!integration) return null;
+    if (!integration) {
+      this.logger.debug(`No integration found for org ${organizationId}`);
+      return null;
+    }
 
     const mapping = await this.prisma.slackUserMapping.findUnique({
       where: { userId_slackIntegrationId: { userId, slackIntegrationId: integration.id } },
     });
 
-    if (!mapping) return null;
+    if (!mapping) {
+      this.logger.debug(`No mapping found for userId=${userId}, integrationId=${integration.id}`);
+      return null;
+    }
+    
+    this.logger.debug(`Mapping found: userId=${userId}, slackUserId=${mapping.slackUserId}`);
     return { slackUserId: mapping.slackUserId, linkedAt: mapping.linkedAt };
   }
 

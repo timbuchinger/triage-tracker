@@ -6,6 +6,7 @@ import { AddSummaryDto } from "./dto/add-summary.dto";
 import { CreateIncidentDto } from "./dto/create-incident.dto";
 import { UpdateIncidentDto } from "./dto/update-incident.dto";
 import { AiService } from "../ai/ai.service";
+import { GEMINI_MODEL } from "../ai/constants";
 import { SlackQueueService } from "../slack/slack-queue.service";
 
 @Injectable()
@@ -343,7 +344,7 @@ export class IncidentsService {
         content: summaryContent,
         metadata: {
           provider: 'gemini',
-          model: 'gemini-2.0-flash-exp',
+          model: GEMINI_MODEL,
           generatedAt: new Date().toISOString(),
         }
       }
@@ -388,7 +389,7 @@ export class IncidentsService {
     // Fetch the incident with Slack channel info and user info
     const incidentBefore = await this.prisma.incident.findUnique({
       where: { refId },
-      include: { createdBy: true }
+      include: { creator: true }
     });
 
     if (!incidentBefore) {

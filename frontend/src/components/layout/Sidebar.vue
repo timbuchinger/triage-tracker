@@ -12,6 +12,7 @@ const items = computed(() => [
   ...(authStore.isOwner ? [{ name: "Members", to: { name: "organization-members" }, icon: "👥" }] : []),
   ...(authStore.isOwner ? [{ name: "Teams", to: { name: "teams" }, icon: "🧩" }] : []),
   { name: "Services", to: { name: "services" }, icon: "📦" },
+  ...(authStore.isOwner ? [{ name: "Organization", to: { name: "organization-settings" }, icon: "🏢" }] : []),
   { name: "Settings", to: { name: "settings" }, icon: "⚙️" }
 ]);
 

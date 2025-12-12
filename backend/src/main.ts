@@ -34,7 +34,10 @@ async function bootstrap() {
   });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: [
+      'http://localhost:5173',
+      process.env.FRONTEND_URL,
+    ].filter(Boolean),
     credentials: true
   });
   app.use(cookieParser());

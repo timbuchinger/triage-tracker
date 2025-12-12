@@ -149,9 +149,15 @@ export class SlackJobProcessor implements OnModuleInit, OnModuleDestroy {
       const existingMetaObj = (existingEvent.metadata && typeof existingEvent.metadata === 'object') ? (existingEvent.metadata as any) : {};
       const newMeta = Object.assign({}, existingMetaObj, { reactions: (message as any).reactions || [], permalink: (message as any).permalink });
 
+      // If this event now has thumbs, mark it as HIGHLIGHTED_MESSAGE
+      const updateData: any = { metadata: newMeta, thumbsCount };
+      if (thumbsCount > 0 && existingEvent.type !== EventType.HIGHLIGHTED_MESSAGE) {
+        updateData.type = EventType.HIGHLIGHTED_MESSAGE;
+      }
+
       await this.prisma.timelineEvent.update({
         where: { id: existingEvent.id },
-        data: ({ metadata: newMeta, thumbsCount } as any)
+        data: updateData
       });
 
       this.logger.log(`Updated highlighted message metadata for incident ${incident.refId} timeline`);

@@ -325,9 +325,34 @@ const saveNotes = async () => {
         <UiCard>
           <div class="flex items-center justify-between mb-2">
             <h2 class="text-sm font-semibold">Timeline</h2>
-            <span class="badge badge-ghost badge-sm">
-              {{ incident.timeline.length }} events
-            </span>
+            <div class="flex items-center gap-2">
+              <button
+                @click="() => loadIncident()"
+                :disabled="loading"
+                class="btn btn-ghost btn-xs"
+                aria-label="Refresh timeline"
+                title="Refresh timeline"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4"
+                  :class="{ 'animate-spin': loading }"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+              </button>
+              <span class="badge badge-ghost badge-sm">
+                {{ incident.timeline.length }} events
+              </span>
+            </div>
           </div>
           <div v-if="incident.timeline.length === 0" class="text-sm text-base-content/60">
             No timeline events yet.
@@ -447,7 +472,7 @@ const saveNotes = async () => {
 
         <UiCard>
           <h2 class="text-sm font-semibold mb-2">Notes</h2>
-          <UiFormField label="Notes" id="notes">
+          <UiFormField id="notes">
             <UiTextarea
               id="notes"
               rows="4"

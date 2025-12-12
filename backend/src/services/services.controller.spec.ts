@@ -1,8 +1,9 @@
 import { ServicesController } from './services.controller';
 
 describe('ServicesController', () => {
-  const svc = { findAll: jest.fn(), create: jest.fn(), delete: jest.fn() };
-  const ctrl = new ServicesController(svc as any);
+  const svc = { findAll: jest.fn(), findOne: jest.fn(), create: jest.fn(), update: jest.fn(), delete: jest.fn() };
+  const linkSvc = { findByServiceId: jest.fn(), create: jest.fn(), update: jest.fn(), delete: jest.fn() };
+  const ctrl = new ServicesController(svc as any, linkSvc as any);
 
   beforeEach(() => jest.clearAllMocks());
 

@@ -3,6 +3,7 @@ import { onMounted, ref, reactive } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import { useNotifications } from "@/composables/useNotifications";
 import * as orgsApi from "@/api/organizations";
+import * as integrationsApi from "@/api/integrations";
 import UiCard from "@/components/ui/UiCard.vue";
 import UiButton from "@/components/ui/UiButton.vue";
 import UiFormField from "@/components/ui/UiFormField.vue";
@@ -18,6 +19,7 @@ const { success, error } = useNotifications();
 
 const members = ref<orgsApi.Member[]>([]);
 const invites = ref<orgsApi.Invite[]>([]);
+const slackMappings = ref<Record<string, boolean>>({});
 const loading = ref(false);
 const showInviteModal = ref(false);
 const showRoleChangeConfirm = ref(false);
@@ -40,8 +42,37 @@ const fetchMembers = async () => {
     members.value.forEach((m) => {
       selectedRoles[m.id] = m.role;
     });
+    
+    // Fetch Slack mappings for all members
+    await fetchSlackMappings();
   } catch (err) {
     error("Failed to load members", { details: err instanceof Error ? err.message : "Unknown error" });
+  }
+};
+
+const fetchSlackMappings = async () => {
+  if (!authStore.user?.organizationId) return;
+  
+  try {
+    const mappingPromises = members.value.map(async (member) => {
+      try {
+        const status = await integrationsApi.getSlackUserMappingStatus(
+          authStore.user!.organizationId,
+          member.id
+        );
+        return { userId: member.id, linked: status.linked };
+      } catch {
+        return { userId: member.id, linked: false };
+      }
+    });
+    
+    const results = await Promise.all(mappingPromises);
+    slackMappings.value = Object.fromEntries(
+      results.map(r => [r.userId, r.linked])
+    );
+  } catch (err) {
+    // Non-fatal, just won't show Slack status
+    console.warn('Failed to load Slack mappings:', err);
   }
 };
 
@@ -178,6 +209,7 @@ onMounted(async () => {
               <th>Email</th>
               <th>Name</th>
               <th>Role</th>
+              <th>Slack</th>
               <th>Joined</th>
               <th>Last Login</th>
               <th v-if="authStore.isOwner">Actions</th>
@@ -199,6 +231,14 @@ onMounted(async () => {
                 >
                   {{ member.role === 'OWNER' ? 'Admin' : 'Member' }}
                 </span>
+              </td>
+              <td>
+                <div class="flex items-center justify-center">
+                  <svg v-if="slackMappings[member.id]" class="w-5 h-5 text-success" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                  </svg>
+                  <span v-else class="text-base-content/30">—</span>
+                </div>
               </td>
               <td>{{ formatDate(member.createdAt) }}</td>
               <td>{{ member.lastLogin ? formatDate(member.lastLogin) : '—' }}</td>

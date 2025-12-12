@@ -26,6 +26,10 @@ oauth_config:
       - conversations:write
       - users:read
       - reactions:read
+    user:
+      - identity.basic
+      - identity.email
+      - identity.avatar
   redirect_urls:
     - "https://caperingly-equiangular-maurine.ngrok-free.dev/api/integrations/slack/callback"
 
@@ -46,12 +50,15 @@ settings:
   token_rotation_enabled: false
 
 metadata:
-  # Notes for maintainers: Replace {BASE_URL} with your deployment base URL (example: https://triage.example.com)
+  # Notes for maintainers: Replace the ngrok URL with your deployment base URL (example: https://triage.example.com)
   instructions: |
-    - Set the `redirect_urls` value to your app's OAuth callback endpoint: `https://caperingly-equiangular-maurine.ngrok-free.dev/api/integrations/slack/callback`.
+    - Set the `redirect_urls` value to your app's OAuth callback endpoint: `{BASE_URL}/api/integrations/slack/callback`.
     - Set the `request_url` values to your runtime endpoints that the backend exposes:
-      - Slash command: `https://caperingly-equiangular-maurine.ngrok-free.dev/api/integrations/slack/commands/inc`
-      - Interactivity: `https://caperingly-equiangular-maurine.ngrok-free.dev/api/integrations/slack/interactions`
-      - Events: `https://caperingly-equiangular-maurine.ngrok-free.dev/api/integrations/slack/events`
-    - The manifest above requests the following bot scopes: `commands`, `chat:write`, `channels:read`, `channels:history`, `channels:write` (for creating and updating channels), `conversations:write`, `users:read`, and `reactions:read`.
+      - Slash command: `{BASE_URL}/api/integrations/slack/commands/inc`
+      - Interactivity: `{BASE_URL}/api/integrations/slack/interactions`
+      - Events: `{BASE_URL}/api/integrations/slack/events`
+    - The manifest requests the following scopes:
+      - Bot scopes: `commands`, `chat:write`, `chat:write.public`, `channels:read`, `channels:history`, `channels:write`, `conversations:write`, `users:read`, `reactions:read`
+      - User scopes: `identity.basic`, `identity.email`, `identity.avatar` (for linking individual user accounts)
     - After importing this manifest into Slack, confirm the following event subscriptions are enabled: `reaction_added`, `app_uninstalled`, and (optionally) `message.channels` if you want message events.
+    - For local development with ngrok, update all URLs to use your ngrok URL and ensure SLACK_REDIRECT_URI in backend/.env matches the redirect_urls value.

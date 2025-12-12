@@ -9,9 +9,9 @@ async function main(argv = process.argv.slice(2)) {
     envFile = argv[1] || '';
   }
 
-  const ROOT_DIR = path.resolve(__dirname, '..', '..');
+  const ROOT_DIR = path.resolve(__dirname, '..');
   const candidate1 = path.join(ROOT_DIR, 'integrations', 'slack', 'manifest.template.yml');
-  const candidate2 = path.join(ROOT_DIR, 'backend', 'docs', 'integrations', 'slack', 'manifest.template.yml');
+  const candidate2 = path.join(ROOT_DIR, 'docs', 'integrations', 'slack', 'manifest.template.yml');
   let TEMPLATE = candidate1;
   let OUT = path.join(ROOT_DIR, 'integrations', 'slack', 'manifest.yml');
 
@@ -20,7 +20,7 @@ async function main(argv = process.argv.slice(2)) {
     OUT = path.join(ROOT_DIR, 'integrations', 'slack', 'manifest.yml');
   } else if (fs.existsSync(candidate2)) {
     TEMPLATE = candidate2;
-    OUT = path.join(ROOT_DIR, 'backend', 'docs', 'integrations', 'slack', 'manifest.yml');
+    OUT = path.join(ROOT_DIR, 'docs', 'integrations', 'slack', 'manifest.yml');
   } else {
     // default to original path (will error later if missing)
     TEMPLATE = candidate1;
@@ -49,6 +49,7 @@ async function main(argv = process.argv.slice(2)) {
   }
 
   const APP_NAME = process.env.APP_NAME || 'Triage Tracker';
+  const REDIRECT_URL = process.env.REDIRECT_URL || 'https://example.com/api/integrations/slack/callback';
   const EVENTS_URL = process.env.EVENTS_URL || 'https://example.com/slack/events';
   const INTERACTIVITY_URL = process.env.INTERACTIVITY_URL || 'https://example.com/slack/interactive';
 
@@ -57,6 +58,7 @@ async function main(argv = process.argv.slice(2)) {
   // Simple placeholder replacement for known variables.
   content = content
     .replace(/\$\{APP_NAME\}/g, APP_NAME)
+    .replace(/\$\{REDIRECT_URL\}/g, REDIRECT_URL)
     .replace(/\$\{EVENTS_URL\}/g, EVENTS_URL)
     .replace(/\$\{INTERACTIVITY_URL\}/g, INTERACTIVITY_URL);
 

@@ -1,12 +1,13 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { GEMINI_MODEL } from './constants';
 
 @Injectable()
 export class GeminiClient {
   private readonly logger = new Logger(GeminiClient.name);
   private readonly genAI: GoogleGenerativeAI;
-  private readonly model: string = 'gemini-2.0-flash-exp';
+  private readonly model: string = GEMINI_MODEL;
 
   constructor(private configService: ConfigService) {
     const apiKey = this.configService.get<string>('GEMINI_API_KEY');

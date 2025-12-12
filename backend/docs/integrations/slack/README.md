@@ -1,68 +1,95 @@
-# Slack manifest generation
+# Slack Manifest Generation
 
-This folder contains a template and helper to generate a Slack app manifest for local/dev testing.
+This folder contains a template and configuration for generating a Slack app manifest for local/dev testing.
 
-Files:
+## Files
 
-- `manifest.template.yml` — manifest with placeholders for environment values.
-- `manifest.yml` — generated manifest (ignored by default; created by the script).
+- `manifest.template.yml` — Manifest template with placeholders for environment values
+- `.env.slack` — Environment configuration with your ngrok URL and app settings
+- `manifest.yml` — Generated manifest (auto-generated, do not edit manually)
 
-Quick start
+## Quick Start
 
-1. Create a `.env` file (optional) with values:
+### 1. Update Configuration
 
-```
-APP_NAME="Triage Tracker"
-EVENTS_URL="https://<your-ngrok>.io/api/integrations/slack/events"
-INTERACTIVITY_URL="https://<your-ngrok>.io/api/integrations/slack/interactive"
-```
-
-2. Run the generator script from the repo root:
+Edit `.env.slack` with your ngrok URL or deployment URL:
 
 ```bash
-./scripts/generate-slack-manifest.sh --env-file .env
+APP_NAME="Triage Tracker"
+REDIRECT_URL="https://your-ngrok-url.ngrok-free.app/api/integrations/slack/callback"
+EVENTS_URL="https://your-ngrok-url.ngrok-free.app/api/integrations/slack/events"
+INTERACTIVITY_URL="https://your-ngrok-url.ngrok-free.app/api/integrations/slack/interactive"
 ```
 
-3. Upload `integrations/slack/manifest.yml` to Slack App Manager (https://api.slack.com/apps) using "Upload an app manifest".
+### 2. Generate the Manifest
 
-Notes
+From the backend directory, run:
 
-- The generator tries to use `envsubst` if available, otherwise falls back to `sed` substitution.
-- Keep `manifest.yml` out of source control while developing; commit only final versions if desired.
+```bash
+npm run cmd:build-slack-manifest
+```
 
-Slash commands
+Or from Docker:
 
-- Slack requires per-command Request URLs to be set in the App Manager UI (manifest cannot set `request_url` per command). Create the slash command using the Slack App Manager:
-	- Command: `/triage`
-	- Request URL: `https://<your-ngrok>.io/api/integrations/slack/commands/inc`
-	- Short description: "Create or get triage information"
+```bash
+docker compose -f docker-compose.dev.yml exec api npm run cmd:build-slack-manifest
+```
 
-After creating the command in the UI, re-install the app (if required) and copy any new tokens/secrets into `backend/.env`.
+This generates `manifest.yml` from the template using your `.env.slack` values.
 
-Slash command setup (recommended)
+### 3. Upload to Slack
 
-If the `/inc` slash command does not exist in your Slack app, add it manually in the Slack App Manager using the steps below. Use the exact canonical endpoint the backend exposes so Slack calls reach the right controller.
+1. Go to https://api.slack.com/apps
+2. Click "Create New App" → "From an app manifest"
+3. Select your workspace
+4. Copy and paste the contents of `manifest.yml`
+5. Review permissions and create the app
 
-1. Open your app in Slack App Manager: https://api.slack.com/apps → select your app
-2. In the left menu select "Slash Commands" → "Create New Command"
-3. Fill the form with these values:
-	 - **Command**: `/inc`
-	 - **Request URL**: `https://<your-host>/api/integrations/slack/commands/inc`
-		 - Replace `https://<your-host>` with your public API host (ngrok or production domain).
-		 - Note: the application sets a global prefix `api`, and the controller lives under `integrations/slack`, so the correct full path is `/api/integrations/slack/commands/inc`.
-	 - **Short description**: `Open incident actions`
-	 - **Usage hint**: `[status|create]`
-4. Save the command.
-5. (If prompted) Reinstall the app or reauthorize so Slack registers the new command with the app and tokens/permissions are refreshed.
+### 4. Configure OAuth Scopes
 
-Troubleshooting & tips
+The manifest includes both bot and user scopes:
 
-- If you see a 404 for `/api/integrations/slack/interactions` or `/api/integrations/slack/commands/inc`, make sure Slack is configured to call the canonical paths that include the `api` global prefix and `integrations/slack` path segment. Example canonical paths:
-	- Slash command: `/api/integrations/slack/commands/inc`
-	- Interactivity: `/api/integrations/slack/interactions`
-	- Events: `/api/integrations/slack/events`
-- The Slack app manifest cannot reliably set per-command `request_url` during upload; configure slash commands in the Slack App Manager UI as above.
-- Use HTTPS and ensure the host you provide is reachable from Slack (ngrok is fine for local testing). If you change ngrok URL, reconfigure the command or re-upload the manifest as appropriate.
-- If Slack reports an invalid parameter when trying to set the Request URL in the UI, double-check that the URL is a valid HTTPS URL and that it includes the full path (including `/api/...`).
+**Bot scopes** (for workspace integration):
+- `commands`, `chat:write`, `chat:write.public`, `channels:read`, `channels:history`, `channels:manage`, `groups:read`, `users:read`, `reactions:read`, `incoming-webhook`, `app_mentions:read`
 
-If you want, I can produce a tiny checklist you can paste into the Slack UI or update the repository `CONTRIBUTING.md` with these steps.
+**User scopes** (for linking individual user accounts):
+- `identity.basic`, `identity.email`, `identity.avatar`
+
+### 5. Copy Credentials
+
+After creating the app, copy these values to your `backend/.env`:
+
+```bash
+SLACK_CLIENT_ID=<from Basic Information>
+SLACK_CLIENT_SECRET=<from Basic Information>
+SLACK_SIGNING_SECRET=<from Basic Information>
+SLACK_REDIRECT_URI=<same as REDIRECT_URL in .env.slack>
+SLACK_BOT_TOKEN=<from OAuth & Permissions after installing>
+```
+
+## Slash Command Setup
+
+The manifest automatically configures the `/inc` slash command with the correct request URL from your `.env.slack` file.
+
+## Updating the Manifest
+
+When your ngrok URL changes or you need to update settings:
+
+1. Update `.env.slack` with new values
+2. Run `npm run cmd:build-slack-manifest` to regenerate
+3. In Slack App Manager → App Manifest → paste the updated manifest
+4. Update `SLACK_REDIRECT_URI` in `backend/.env` to match
+
+## Troubleshooting
+
+- **404 errors**: Ensure URLs in `.env.slack` include the `/api` prefix and full path
+- **OAuth errors**: Verify `SLACK_REDIRECT_URI` in `backend/.env` matches the redirect URL in the manifest
+- **Permission errors**: Make sure both bot and user scopes are properly configured
+- **Manifest validation errors**: Check that your ngrok URL is HTTPS and properly formatted
+
+## Development Notes
+
+- The generator script is at `backend/scripts/generate-slack-manifest.js`
+- It automatically loads `.env.slack` from this directory
+- Keep `manifest.yml` out of source control if it contains your specific ngrok URLs
+- The template supports both local development (ngrok) and production deployments

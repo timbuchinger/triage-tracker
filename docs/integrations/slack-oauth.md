@@ -228,27 +228,29 @@ When user adds 👍 to a message:
 
 ## Frontend Integration
 
-### Settings Page
-Navigate to: `/settings/integrations`
+### Organization Settings (Workspace Connection)
+Navigate to: `/organization/settings` (Admin/Owner only)
 
 **Features:**
-- View connection status
-- Connect/disconnect workspace
-- Display installed scopes
+- Connect/disconnect Slack workspace
+- Display installed scopes  
+- Show team name and workspace details
 - Show installer and installation date
 - Modal with permission details
 
-**Demo Mode:**
-Uses hardcoded org/user IDs for demonstration:
-```typescript
-const DEMO_ORG_ID = 'org_demo_123';
-const DEMO_USER_ID = 'user_demo_456';
-```
+### User Settings (Personal Account Linking)
+Navigate to: `/settings` (All users)
+
+**Features:**
+- Link/unlink personal Slack account
+- View linked Slack user ID
+- Warning if workspace not connected yet
 
 **Production Mode:**
-Replace with actual authentication context:
+Uses actual authenticated user context:
 ```typescript
-const { organizationId, userId } = useAuth();
+const organizationId = authStore.user?.organizationId;
+const userId = authStore.user?.id;
 ```
 
 ## Monitoring & Logging

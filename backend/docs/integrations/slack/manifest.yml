@@ -21,6 +21,7 @@ oauth_config:
       - channels:read
       - channels:history
       - chat:write
+      - chat:write.public
       - im:history
       - users:read
       - channels:manage
@@ -29,6 +30,12 @@ oauth_config:
       - incoming-webhook
       - app_mentions:read
       - reactions:read
+    user:
+      - identity.basic
+      - identity.email
+      - identity.avatar
+  redirect_urls:
+    - "https://caperingly-equiangular-maurine.ngrok-free.dev/api/integrations/slack/callback"
 
 settings:
   event_subscriptions:

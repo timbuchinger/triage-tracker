@@ -66,9 +66,30 @@ model Service {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id])
-  team         Team         @relation(fields: [teamId], references: [id])
+  organization Organization  @relation(fields: [organizationId], references: [id])
+  team         Team          @relation(fields: [teamId], references: [id])
   incidents    Incident[]
+  links        ServiceLink[]
+}
+
+model ServiceLink {
+  id        String          @id @default(cuid())
+  serviceId String
+  type      ServiceLinkType
+  url       String
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([serviceId, type])
+  @@index([serviceId])
+}
+
+enum ServiceLinkType {
+  GRAFANA
+  GIT
+  DYNATRACE
 }
 
 model Organization {

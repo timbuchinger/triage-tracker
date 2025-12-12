@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../database/prisma.service";
 import { CreateServiceDto } from "./dto/create-service.dto";
+import { UpdateServiceDto } from "./dto/update-service.dto";
 
 @Injectable()
 export class ServicesService {
@@ -17,9 +18,43 @@ export class ServicesService {
             primaryContact: { select: { id: true, name: true, email: true } },
             secondaryContact: { select: { id: true, name: true, email: true } }
           }
+        },
+        links: {
+          orderBy: { type: 'asc' }
         }
       },
       orderBy: { name: "asc" }
+    });
+  }
+
+  findOne(id: string) {
+    return this.prisma.service.findUnique({
+      where: { id },
+      include: {
+        team: {
+          select: {
+            id: true,
+            name: true,
+            isDefault: true,
+            primaryContact: { select: { id: true, name: true, email: true } },
+            secondaryContact: { select: { id: true, name: true, email: true } }
+          }
+        },
+        links: {
+          orderBy: { type: 'asc' }
+        },
+        incidents: {
+          select: {
+            id: true,
+            refId: true,
+            title: true,
+            severity: true,
+            status: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: 'desc' }
+        }
+      }
     });
   }
 
@@ -44,7 +79,30 @@ export class ServicesService {
             primaryContact: { select: { id: true, name: true, email: true } },
             secondaryContact: { select: { id: true, name: true, email: true } }
           }
-        }
+        },
+        links: true
+      }
+    });
+  }
+
+  update(id: string, dto: UpdateServiceDto) {
+    return this.prisma.service.update({
+      where: { id },
+      data: {
+        name: dto.name,
+        teamId: dto.teamId
+      },
+      include: {
+        team: {
+          select: {
+            id: true,
+            name: true,
+            isDefault: true,
+            primaryContact: { select: { id: true, name: true, email: true } },
+            secondaryContact: { select: { id: true, name: true, email: true } }
+          }
+        },
+        links: true
       }
     });
   }

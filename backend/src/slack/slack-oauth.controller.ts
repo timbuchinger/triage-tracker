@@ -24,13 +24,14 @@ export class SlackOAuthController {
     // If the client expects JSON (e.g., frontend fetch/XHR), return the URL
     // as JSON so the frontend can perform a top-level navigation. This
     // prevents fetch from following the redirect to Slack which would trigger
-    // CORS issues when the browser attempts to fetch Slack's authorize URL.
+    // CORS issues when the browser attempts to fetch a third-party URL.
     const accept = req.headers['accept'] || '';
-    const asJson = typeof accept === 'string' && accept.includes('application/json');
-    const formatJson = req.query?.format === 'json';
+    const asJson =
+      (typeof accept === 'string' && accept.includes('application/json')) ||
+      req.query?.format === 'json';
 
-    if (asJson || formatJson) {
-      return { url: authUrl };
+    if (asJson) {
+      return res.json({ url: authUrl });
     }
 
     return res.redirect(authUrl);
@@ -43,15 +44,15 @@ export class SlackOAuthController {
     @Res() res: Response,
   ) {
     if (!code || !state) {
-      return res.redirect(`/settings/integrations?error=missing_parameters`);
+      return res.redirect(`/organization/settings?error=missing_parameters`);
     }
 
     try {
       const result = await this.slackOAuthService.handleCallback(code, state);
-      return res.redirect(`/settings/integrations?success=true&team=${encodeURIComponent(result.teamName)}`);
+      return res.redirect(`/organization/settings?success=true&team=${encodeURIComponent(result.teamName)}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      return res.redirect(`/settings/integrations?error=${encodeURIComponent(message)}`);
+      return res.redirect(`/organization/settings?error=${encodeURIComponent(message)}`);
     }
   }
 

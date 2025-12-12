@@ -5,6 +5,7 @@ import { useAuthStore } from "@/stores/auth";
 import { useNotifications } from "@/composables/useNotifications";
 import * as teamsApi from "@/api/teams";
 import * as orgsApi from "@/api/organizations";
+import * as integrationsApi from "@/api/integrations";
 import UiCard from "@/components/ui/UiCard.vue";
 import UiButton from "@/components/ui/UiButton.vue";
 import UiFormField from "@/components/ui/UiFormField.vue";
@@ -26,6 +27,7 @@ const teamId = computed(() => String(route.params.id || ""));
 const team = ref<teamsApi.TeamDetail | null>(null);
 const loading = ref(false);
 const orgMembers = ref<orgsApi.Member[]>([]);
+const slackMappings = ref<Record<string, boolean>>({});
 const addMembersSelection = ref<string[]>([]);
 
 const showRemoveMemberModal = ref(false);
@@ -46,6 +48,9 @@ const fetchTeam = async () => {
       if (!team.value.members) team.value.members = [];
       if (!team.value.services) team.value.services = [];
     }
+
+    // Fetch Slack mappings for team members
+    await fetchSlackMappings();
   } catch (err) {
     if (isUnmounted) return;
     error("Failed to load team", { details: err instanceof Error ? err.message : "Unknown" });
@@ -56,6 +61,32 @@ const fetchTeam = async () => {
     if (!isUnmounted) {
       loading.value = false;
     }
+  }
+};
+
+const fetchSlackMappings = async () => {
+  if (!authStore.user?.organizationId || !team.value?.members) return;
+
+  try {
+    const mappingPromises = team.value.members.map(async (member) => {
+      try {
+        const status = await integrationsApi.getSlackUserMappingStatus(
+          authStore.user!.organizationId,
+          member.user.id
+        );
+        return { userId: member.user.id, linked: status.linked };
+      } catch {
+        return { userId: member.user.id, linked: false };
+      }
+    });
+
+    const results = await Promise.all(mappingPromises);
+    slackMappings.value = Object.fromEntries(
+      results.map(r => [r.userId, r.linked])
+    );
+  } catch (err) {
+    // Non-fatal, just won't show Slack status
+    console.warn('Failed to load Slack mappings:', err);
   }
 };
 
@@ -217,12 +248,13 @@ onMounted(async () => {
                   <th>Email</th>
                   <th>Name</th>
                   <th>Role</th>
+                  <th>Slack</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-if="(team.members ?? []).length === 0">
-                  <td colspan="4" class="text-center text-base-content/60">No members in this team.</td>
+                  <td colspan="5" class="text-center text-base-content/60">No members in this team.</td>
                 </tr>
                 <tr v-for="m in team.members ?? []" :key="m.user.id">
                   <td>{{ m.user.email }}</td>
@@ -232,6 +264,14 @@ onMounted(async () => {
                       <span v-if="team.primaryContact && team.primaryContact.id === m.user.id" class="badge badge-success">Primary</span>
                       <span v-else-if="team.secondaryContact && team.secondaryContact.id === m.user.id" class="badge badge-warning">Secondary</span>
                       <span v-else class="text-sm text-base-content/60">—</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="flex items-center justify-center">
+                      <svg v-if="slackMappings[m.user.id]" class="w-5 h-5 text-success" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                      </svg>
+                      <span v-else class="text-base-content/30">—</span>
                     </div>
                   </td>
                   <td class="space-x-2">
@@ -259,7 +299,10 @@ onMounted(async () => {
         </div>
 
         <div>
-          <h3 class="text-lg font-semibold mt-6">Services</h3>
+          <div class="flex items-center justify-between mt-6">
+            <h3 class="text-lg font-semibold">Services</h3>
+            <router-link :to="{ name: 'services' }" class="text-sm text-base-content/60 hover:underline">(view all)</router-link>
+          </div>
           <div class="overflow-x-auto">
             <table class="table table-zebra w-full">
               <thead>

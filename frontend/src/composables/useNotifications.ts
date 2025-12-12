@@ -26,6 +26,10 @@ export function useNotifications() {
     notify(message, 'info', options);
   }
 
+  function success(message: string, options: NotificationOptions = {}) {
+    notify(message, 'info', options);
+  }
+
   function warning(message: string, options: NotificationOptions = {}) {
     notify(message, 'warning', { ...options, autoDismiss: false });
   }
@@ -45,6 +49,7 @@ export function useNotifications() {
   return {
     notify,
     info,
+    success,
     warning,
     error,
     dismiss,

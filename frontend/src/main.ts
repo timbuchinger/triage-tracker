@@ -94,9 +94,13 @@ const initializeAuthAndMount = async () => {
   router.beforeEach((to, from, next) => {
     const isPublic = to.meta.public === true;
     const isAuthenticated = authStore.isAuthenticated;
+    const requiresOwner = to.meta.requiresOwner === true;
 
     if (!isPublic && !isAuthenticated) {
       next({ name: "login", query: { redirect: to.fullPath } });
+    } else if (requiresOwner && !authStore.isOwner) {
+      // Redirect non-owners away from owner-only routes
+      next({ name: "incidents" });
     } else if (to.name === "login" && isAuthenticated) {
       next({ name: "incidents" });
     } else {
